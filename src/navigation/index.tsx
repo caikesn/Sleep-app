@@ -10,6 +10,7 @@ import { NIGHT_ROUTINE_CATEGORY } from '../notifications';
 import { useAuth } from '../lib/AuthContext';
 import TabBar from '../components/TabBar';
 import AuthScreen from '../screens/AuthScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import TonightScreen from '../screens/TonightScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ModulesScreen from '../screens/ModulesScreen';
@@ -20,6 +21,7 @@ import RedLightTutorialScreen from '../screens/RedLightTutorialScreen';
 
 export type RootStackParamList = {
   Auth: undefined;
+  ForgotPassword: undefined;
   Tabs: undefined;
   Session: { steps: RoutineStep[]; title: string };
   Meditation: undefined;
@@ -75,7 +77,11 @@ const navTheme = {
 };
 
 export default function Navigation({ navigationRef }: { navigationRef: any }) {
-  const { session, initializing } = useAuth();
+  const { session, initializing, recovering } = useAuth();
+
+  // Verifying a recovery code creates a session before the new password is
+  // saved. Holding the swap keeps the reset screen mounted until it lands.
+  const signedIn = !!session && !recovering;
 
   // A reminder tapped while signed out can't go straight to the session — that
   // route only exists in the signed-in stack. Hold the intent and honour it
@@ -83,10 +89,10 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
   const pendingSession = useRef(false);
 
   const consumePendingSession = useCallback(() => {
-    if (!pendingSession.current || !session || !navigationRef.isReady()) return;
+    if (!pendingSession.current || !signedIn || !navigationRef.isReady()) return;
     pendingSession.current = false;
     navigationRef.navigate('Session', { steps: defaultRoutine, title: 'Night Routine' });
-  }, [session, navigationRef]);
+  }, [signedIn, navigationRef]);
 
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
@@ -112,7 +118,7 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme}>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {session ? (
+        {signedIn ? (
           <RootStack.Group>
             <RootStack.Screen name="Tabs" component={TabsNavigator} />
             {/* Timed sessions sit above the tabs so nothing competes for attention. */}
@@ -125,7 +131,10 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
             />
           </RootStack.Group>
         ) : (
-          <RootStack.Screen name="Auth" component={AuthScreen} />
+          <RootStack.Group>
+            <RootStack.Screen name="Auth" component={AuthScreen} />
+            <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          </RootStack.Group>
         )}
       </RootStack.Navigator>
     </NavigationContainer>

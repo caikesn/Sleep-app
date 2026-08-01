@@ -3,21 +3,25 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   Pressable,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme, space, radius } from '../theme';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { theme, space } from '../theme';
 import { useAuth } from '../lib/AuthContext';
+import Button from '../components/Button';
+import Field from '../components/Field';
+import type { RootStackParamList } from '../navigation';
 
 type Mode = 'signIn' | 'signUp';
 
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { signIn, signUp } = useAuth();
 
   const [mode, setMode] = useState<Mode>('signIn');
@@ -26,7 +30,6 @@ export default function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
 
   const canSubmit = email.trim().length > 3 && password.length >= 6 && !busy;
 
@@ -74,13 +77,11 @@ export default function AuthScreen() {
         </Text>
 
         <View style={styles.form}>
-          <Text style={styles.fieldLabel}>EMAIL</Text>
-          <TextInput
-            style={styles.input}
+          <Field
+            label="EMAIL"
             value={email}
             onChangeText={setEmail}
             placeholder="you@example.com"
-            placeholderTextColor={theme.textFaint}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
@@ -88,46 +89,39 @@ export default function AuthScreen() {
             inputMode="email"
           />
 
-          <Text style={styles.fieldLabel}>PASSWORD</Text>
-          <View style={styles.passwordRow}>
-            <TextInput
-              style={[styles.input, styles.passwordInput]}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="At least 6 characters"
-              placeholderTextColor={theme.textFaint}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType={mode === 'signIn' ? 'password' : 'newPassword'}
-              onSubmitEditing={submit}
-              returnKeyType="go"
-            />
-            <Pressable
-              style={styles.reveal}
-              onPress={() => setShowPassword((v) => !v)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-            >
-              <Text style={styles.revealText}>{showPassword ? 'Hide' : 'Show'}</Text>
-            </Pressable>
-          </View>
+          <Field
+            label="PASSWORD"
+            secure
+            value={password}
+            onChangeText={setPassword}
+            placeholder="At least 6 characters"
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType={mode === 'signIn' ? 'password' : 'newPassword'}
+            onSubmitEditing={submit}
+            returnKeyType="go"
+          />
 
           {error && <Text style={styles.error}>{error}</Text>}
           {notice && <Text style={styles.notice}>{notice}</Text>}
 
-          <Pressable
-            style={[styles.submit, !canSubmit && styles.submitDisabled]}
+          <Button
+            label={mode === 'signIn' ? 'Sign in' : 'Create account'}
             onPress={submit}
+            busy={busy}
             disabled={!canSubmit}
-          >
-            {busy ? (
-              <ActivityIndicator color="#1a0f08" />
-            ) : (
-              <Text style={styles.submitText}>{mode === 'signIn' ? 'Sign in' : 'Create account'}</Text>
-            )}
-          </Pressable>
+            style={styles.submit}
+          />
+
+          {mode === 'signIn' && (
+            <Pressable
+              onPress={() => navigation.navigate('ForgotPassword')}
+              style={styles.switch}
+              hitSlop={8}
+            >
+              <Text style={styles.forgotText}>Forgot your password?</Text>
+            </Pressable>
+          )}
 
           <Pressable onPress={switchMode} style={styles.switch} hitSlop={8}>
             <Text style={styles.switchText}>
@@ -171,42 +165,6 @@ const styles = StyleSheet.create({
   form: {
     marginTop: space.xl,
   },
-  fieldLabel: {
-    color: theme.textFaint,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    marginBottom: space.sm,
-    marginTop: space.md,
-  },
-  input: {
-    backgroundColor: theme.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.cardBorder,
-    borderRadius: radius.md,
-    paddingHorizontal: space.md,
-    paddingVertical: space.md - 2,
-    color: theme.text,
-    fontSize: 16,
-  },
-  passwordRow: {
-    justifyContent: 'center',
-  },
-  passwordInput: {
-    // Room for the Show/Hide control so long passwords don't run under it.
-    paddingRight: 68,
-  },
-  reveal: {
-    position: 'absolute',
-    right: space.sm,
-    paddingHorizontal: space.sm,
-    paddingVertical: space.xs,
-  },
-  revealText: {
-    color: theme.ember,
-    fontSize: 13,
-    fontWeight: '700',
-  },
   error: {
     color: theme.danger,
     fontSize: 14,
@@ -220,21 +178,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   submit: {
-    backgroundColor: theme.emberDeep,
-    borderRadius: radius.lg,
-    paddingVertical: space.md,
-    alignItems: 'center',
     marginTop: space.xl,
-    minHeight: 52,
-    justifyContent: 'center',
-  },
-  submitDisabled: {
-    opacity: 0.4,
-  },
-  submitText: {
-    color: '#1a0f08',
-    fontSize: 16,
-    fontWeight: '700',
   },
   switch: {
     alignSelf: 'center',
@@ -243,6 +187,11 @@ const styles = StyleSheet.create({
   },
   switchText: {
     color: theme.ember,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  forgotText: {
+    color: theme.textDim,
     fontSize: 14,
     fontWeight: '600',
   },

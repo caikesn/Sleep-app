@@ -8,9 +8,21 @@ type AuthState = {
   user: User | null;
   /** True until the persisted session has been read back from storage. */
   initializing: boolean;
+  /**
+   * True while a password reset is mid-flight. Verifying the code creates a
+   * session, which would otherwise swap the navigator to the signed-in stack
+   * and unmount the reset screen before the new password is saved.
+   */
+  recovering: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null; needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
+  sendRecoveryCode: (email: string) => Promise<{ error: string | null }>;
+  completePasswordReset: (
+    email: string,
+    token: string,
+    newPassword: string
+  ) => Promise<{ error: string | null }>;
 };
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -18,6 +30,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -43,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       user: session?.user ?? null,
       initializing,
+      recovering,
 
       async signIn(email, password) {
         const { error } = await supabase.auth.signInWithPassword({
@@ -68,8 +82,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // re-populate the cache from the outgoing user.
         await clearLocalCache();
       },
+
+      async sendRecoveryCode(email) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+        return { error: error?.message ?? null };
+      },
+
+      async completePasswordReset(email, token, newPassword) {
+        setRecovering(true);
+        try {
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            email: email.trim(),
+            token: token.trim(),
+            type: 'recovery',
+          });
+          if (verifyError) return { error: verifyError.message };
+
+          const { error: updateError } = await supabase.auth.updateUser({
+            password: newPassword,
+          });
+          if (updateError) {
+            // The code is spent and a session exists, but the password is
+            // unchanged. Drop back to signed-out so they retry from a clean slate.
+            await supabase.auth.signOut();
+            return { error: updateError.message };
+          }
+          return { error: null };
+        } finally {
+          setRecovering(false);
+        }
+      },
     }),
-    [session, initializing]
+    [session, initializing, recovering]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
