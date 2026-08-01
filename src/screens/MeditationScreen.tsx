@@ -334,10 +334,25 @@ function SetupStage({
           </Text>
         )}
 
-        <Text style={styles.sectionLabel}>BELLS</Text>
+        <View style={styles.sectionHead}>
+          <Text style={styles.sectionLabel}>BELLS</Text>
+          {bells !== 'off' && (
+            <Pressable
+              // Worth having on its own merits — checking the volume before you
+              // lie down beats discovering it is wrong once you have.
+              onPress={() => ring('interval')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Play the bell now"
+            >
+              <Text style={styles.testBell}>Hear it</Text>
+            </Pressable>
+          )}
+        </View>
         <PillRow options={BELL_SETTINGS} value={bells} onChange={onBellsChange} />
         <Text style={styles.footnote}>
-          A soft bell to open and close the session, and optionally to mark time in between.
+          A soft bell to open and close the session, and optionally to mark time in between. Each
+          one is a gentle tap as well, so it still lands with the phone silenced.
         </Text>
       </ScrollView>
 
@@ -525,6 +540,18 @@ const styles = StyleSheet.create({
   },
   setupBody: {
     paddingBottom: space.lg,
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  testBell: {
+    color: theme.ember,
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: space.lg,
+    marginBottom: space.sm,
   },
   sectionLabel: {
     color: theme.textFaint,
