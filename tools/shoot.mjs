@@ -7,8 +7,14 @@ import path from 'node:path';
  *
  *   npm run shoot -- progress:veteran progress:empty tonight:steady
  *
- * Each argument is `screen:fixture` (see src/preview). Output lands in
- * .screenshots/, which is gitignored — these are for looking at, not keeping.
+ * Each argument is `screen:fixture` (see src/preview), optionally followed by
+ * `@` and a pipe-separated list of button labels to tap first:
+ *
+ *   npm run shoot -- "meditation:steady@Breathe|Continue|I've turned"
+ *
+ * Taps are what make states behind a button reachable — a running timer, a
+ * breathing pacer — without wiring test-only routes into the app itself.
+ * Output lands in .screenshots/, which is gitignored.
  *
  * This is react-native-web in Chromium, not a device. It catches layout that
  * overflows, wraps or clips; it does not tell you how shadows, fonts or
@@ -80,7 +86,12 @@ async function captureScrolled(page, stem) {
 let failures = 0;
 
 for (const shot of shots) {
-  const [screen, fixture = 'steady'] = shot.split(':');
+  const [target, tapList = ''] = shot.split('@');
+  const [screen, fixture = 'steady'] = target.split(':');
+  const taps = tapList.split('|').filter(Boolean);
+  // Keeps a tapped shot from overwriting the untapped one of the same screen.
+  const suffix = taps.length ? `-${taps.map((t) => t.split(' ')[0].toLowerCase()).join('-')}` : '';
+
   const page = await context.newPage();
   const problems = [];
 
@@ -101,7 +112,17 @@ for (const shot of shots) {
     });
     await page.waitForTimeout(600);
 
-    const files = await captureScrolled(page, path.join(OUT, `${screen}-${fixture}`));
+    for (const tap of taps) {
+      // Substring match on visible text: these are button labels as a person
+      // reads them, so the caller doesn't need to know the DOM.
+      await page.getByText(tap, { exact: false }).first().click({ timeout: 15_000 });
+      await page.waitForTimeout(400);
+    }
+    // A pacer or timer needs a moment of running before it shows anything but
+    // its opening frame.
+    if (taps.length) await page.waitForTimeout(2500);
+
+    const files = await captureScrolled(page, path.join(OUT, `${screen}-${fixture}${suffix}`));
     console.log(
       `${files.join('  ')}${problems.length ? `  (${problems.length} console errors)` : ''}`
     );
