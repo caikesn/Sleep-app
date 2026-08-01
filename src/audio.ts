@@ -131,68 +131,95 @@ export function releaseBells(): void {
 
 const FADE_MS = 2000;
 /** Used when swapping one track for another rather than stopping outright. */
-const REPLACE_FADE_MS = 250;
-const FADE_STEPS = 30;
+const REPLACE_FADE_MS = 400;
+/**
+ * How often a fade updates the volume. A fixed interval, with the step count
+ * derived from it — the reverse (fixed steps, derived interval) asked for a
+ * tick every 8ms on the short fade, which is below what the JS timer can
+ * actually deliver, so that fade always overran its own deadline.
+ */
+const FADE_TICK_MS = 40;
 
-let ambience: AudioPlayer | null = null;
-/** Which asset is loaded, so an unchanged track is never restarted. */
-let ambienceSource: number | null = null;
+/**
+ * One playing loop and the timer that owns its volume.
+ *
+ * The timer belongs to the voice rather than to the module. Sharing a single
+ * timer meant starting a second track cancelled the first track's fade-out —
+ * and since the release only happened when that fade *completed*, the first
+ * player was never paused or freed. Its reference was overwritten a moment
+ * later, so nothing could reach it again: it played until the app was killed,
+ * and every track you auditioned piled up on top of the last.
+ */
+type Voice = {
+  player: AudioPlayer;
+  source: number;
+  fade: ReturnType<typeof setInterval> | null;
+};
+
+let current: Voice | null = null;
+/** Every voice holding a native handle, including ones on their way out. */
+const live = new Set<Voice>();
 let target = 0;
-let fade: ReturnType<typeof setInterval> | null = null;
+/** Bumped by every start and stop, so a slow one cannot install a stale voice. */
+let generation = 0;
 
-function stopFade(): void {
-  if (fade) clearInterval(fade);
-  fade = null;
+function clearFade(voice: Voice): void {
+  if (voice.fade) clearInterval(voice.fade);
+  voice.fade = null;
+}
+
+/** Silences and frees a voice immediately. Safe to call more than once. */
+function kill(voice: Voice): void {
+  clearFade(voice);
+  try {
+    voice.player.pause();
+  } catch {
+    // Ignored.
+  }
+  try {
+    voice.player.remove();
+  } catch {
+    // Ignored.
+  }
+  live.delete(voice);
+  if (current === voice) current = null;
 }
 
 /**
- * Ramps the loop's volume over `FADE_MS`, optionally freeing the player at the
- * end.
+ * Ramps one voice's volume, optionally freeing it at the end.
  *
  * Ambience must never start or stop abruptly. The whole point of it is that you
  * stop noticing it's there, and nothing breaks that faster than it appearing
  * out of nowhere — or worse, vanishing at the exact moment a session ends,
  * which lands as a jolt in a dark room.
  */
-function rampTo(value: number, thenRelease = false, durationMs = FADE_MS): void {
-  stopFade();
-
-  const player = ambience;
-  if (!player) return;
+function fadeTo(voice: Voice, to: number, release: boolean, durationMs: number): void {
+  clearFade(voice);
 
   let from = 0;
   try {
-    from = player.volume;
+    from = voice.player.volume;
   } catch {
     // Ignored; a fade from zero is still a fade.
   }
 
+  const steps = Math.max(2, Math.round(durationMs / FADE_TICK_MS));
   let step = 0;
-  fade = setInterval(() => {
+
+  voice.fade = setInterval(() => {
     step += 1;
-    const progress = Math.min(1, step / FADE_STEPS);
+    const progress = Math.min(1, step / steps);
 
     try {
-      player.volume = from + (value - from) * progress;
+      voice.player.volume = from + (to - from) * progress;
     } catch {
       // Ignored.
     }
 
     if (progress < 1) return;
-    stopFade();
-    if (!thenRelease) return;
-
-    try {
-      player.pause();
-      player.remove();
-    } catch {
-      // Ignored.
-    }
-    if (ambience === player) {
-      ambience = null;
-      ambienceSource = null;
-    }
-  }, durationMs / FADE_STEPS);
+    clearFade(voice);
+    if (release) kill(voice);
+  }, FADE_TICK_MS);
 }
 
 /** Starts a looping soundscape, fading it in from silence. */
@@ -200,65 +227,95 @@ export async function startSoundscape(source: number, gain: number): Promise<voi
   // Already playing this one. Someone who previewed a track on the setup screen
   // and then started the session should hear it carry straight through, not dip
   // out and back in because the running screen restarted it.
-  if (ambience && ambienceSource === source) {
+  if (current && current.source === source) {
     setSoundscapeGain(gain);
     return;
   }
 
-  // Quick, not the full fade: this path is someone auditioning tracks on the
-  // setup screen, and two seconds of silence between taps is a long time when
-  // you are comparing two of them.
-  await stopSoundscape(REPLACE_FADE_MS);
+  const mine = ++generation;
   target = gain;
+
+  // The outgoing voice is handed to its own timer and left to fade out while
+  // the new one fades in. Deliberately not awaited: overlapping them is a
+  // crossfade rather than a gap, and — the part that matters — the outgoing
+  // player stays in `live` with its own timer, so there is no window in which a
+  // playing voice has nothing referencing it.
+  const outgoing = current;
+  current = null;
+  if (outgoing) fadeTo(outgoing, 0, true, REPLACE_FADE_MS);
 
   try {
     await prepareBells();
+    // A newer start or a stop landed while the audio session was being set up.
+    if (mine !== generation) return;
+
     const player = createAudioPlayer(source);
     player.loop = true;
     player.volume = 0;
     player.play();
-    ambience = player;
-    ambienceSource = source;
-    rampTo(gain);
+
+    const voice: Voice = { player, source, fade: null };
+    live.add(voice);
+    current = voice;
+    fadeTo(voice, gain, false, FADE_MS);
   } catch {
-    ambience = null;
-    ambienceSource = null;
+    if (mine === generation) current = null;
   }
 }
 
-/** Applied immediately: this is someone dragging the level while listening. */
+/** Applied immediately: this is someone changing the level while listening. */
 export function setSoundscapeGain(gain: number): void {
   target = gain;
-  stopFade();
+  if (!current) return;
+
+  clearFade(current);
   try {
-    if (ambience) ambience.volume = gain;
+    current.player.volume = gain;
   } catch {
     // Ignored.
   }
 }
 
 export function setSoundscapePaused(paused: boolean): void {
+  const voice = current;
+  if (!voice) return;
+
   try {
-    if (!ambience) return;
-    if (paused) ambience.pause();
-    else {
-      ambience.play();
-      // Volume is restored explicitly: pausing part-way through the opening
-      // fade would otherwise resume stuck at whatever level it had reached.
-      ambience.volume = target;
+    if (paused) {
+      voice.player.pause();
+      return;
     }
+    voice.player.play();
+    // Volume is restored explicitly: pausing part-way through the opening fade
+    // would otherwise resume stuck at whatever level it had reached.
+    clearFade(voice);
+    voice.player.volume = target;
   } catch {
     // Ignored.
   }
 }
 
-/** Fades out and frees the player. Resolves once the fade has finished. */
+/**
+ * Fades the current voice out and frees it, and hard-stops anything else still
+ * playing. Resolves once the fade has finished.
+ *
+ * The sweep over `live` is the backstop: a leftover voice is one whose release
+ * was interrupted, and it should not have been audible in the first place, so
+ * it is cut rather than faded. Turning the sound off has to mean silence even
+ * if something upstream went wrong.
+ */
 export function stopSoundscape(durationMs = FADE_MS): Promise<void> {
-  if (!ambience) {
-    stopFade();
-    return Promise.resolve();
+  generation += 1;
+
+  const outgoing = current;
+  current = null;
+
+  for (const voice of [...live]) {
+    if (voice !== outgoing) kill(voice);
   }
 
-  rampTo(0, true, durationMs);
-  return new Promise((resolve) => setTimeout(resolve, durationMs + 50));
+  if (!outgoing) return Promise.resolve();
+
+  fadeTo(outgoing, 0, true, durationMs);
+  return new Promise((resolve) => setTimeout(resolve, durationMs + 100));
 }

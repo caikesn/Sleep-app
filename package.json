@@ -39,7 +39,8 @@
     "web": "expo start --web",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./tools/register-ts.mjs --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
-    "shoot": "node tools/shoot.mjs"
+    "shoot": "node tools/shoot.mjs",
+    "check:audio": "node tools/check-audio.mjs"
   },
   "private": true
 }
