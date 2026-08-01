@@ -7,6 +7,7 @@ import Screen from '../components/Screen';
 import { theme, space, radius, type } from '../theme';
 import { loadSettings, saveSettings } from '../storage';
 import { cancelNightlyRoutine, ensurePermissions, scheduleNightlyRoutine } from '../notifications';
+import { useAuth } from '../lib/AuthContext';
 import type { RootStackParamList } from '../navigation';
 
 function timeToDate(hour: number, minute: number): Date {
@@ -21,6 +22,7 @@ function formatTime(hour: number, minute: number): string {
 
 export default function SettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user, signOut } = useAuth();
 
   const [hour, setHour] = useState(21);
   const [minute, setMinute] = useState(30);
@@ -107,6 +109,23 @@ export default function SettingsScreen() {
         </View>
         <Text style={styles.chevron}>→</Text>
       </Pressable>
+
+      <Text style={styles.sectionLabel}>ACCOUNT</Text>
+      <View style={styles.card}>
+        <Text style={styles.caption}>Signed in as</Text>
+        <Text style={styles.email}>{user?.email ?? '—'}</Text>
+        <Pressable
+          style={styles.signOutRow}
+          onPress={() =>
+            Alert.alert('Sign out?', 'Your routines and history stay saved to your account.', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Sign out', style: 'destructive', onPress: signOut },
+            ])
+          }
+        >
+          <Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
+      </View>
     </Screen>
   );
 }
@@ -169,5 +188,22 @@ const styles = StyleSheet.create({
     color: theme.ember,
     fontSize: 18,
     marginLeft: space.md,
+  },
+  email: {
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: space.xs,
+    marginBottom: space.md,
+  },
+  signOutRow: {
+    paddingTop: space.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.cardBorder,
+  },
+  signOutText: {
+    color: theme.danger,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
