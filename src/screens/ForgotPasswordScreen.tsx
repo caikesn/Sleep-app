@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { theme, space } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { theme, space, gradients } from '../theme';
 import { useAuth } from '../lib/AuthContext';
 import Button from '../components/Button';
 import Field from '../components/Field';
@@ -66,10 +67,11 @@ export default function ForgotPasswordScreen() {
   const requesting = stage === 'request';
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <LinearGradient colors={gradients.screen} style={styles.root}>
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + space.xxl }]}
         keyboardShouldPersistTaps="handled"
@@ -149,16 +151,16 @@ export default function ForgotPasswordScreen() {
               {requesting ? 'Back to sign in' : 'Use a different email'}
             </Text>
           </Pressable>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: theme.bg,
   },
   content: {
     paddingHorizontal: space.lg,

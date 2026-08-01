@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { theme, space, radius } from '../theme';
+import { theme, space, radius, gradients } from '../theme';
 import { MEDITATION_DURATIONS, MEDITATION_PROMPTS, READING_PROMPT } from '../meditationData';
 import type { RootStackParamList } from '../navigation';
 
@@ -20,7 +21,8 @@ export default function MeditationScreen({ navigation }: Props) {
   const [stage, setStage] = useState<Stage>('setup');
 
   return (
-    <View
+    <LinearGradient
+      colors={stage === 'running' ? gradients.session : gradients.screen}
       style={[
         styles.container,
         { paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.md },
@@ -46,7 +48,7 @@ export default function MeditationScreen({ navigation }: Props) {
           onFinish={() => navigation.goBack()}
         />
       )}
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -220,7 +222,6 @@ function RunningStage({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.bg,
     paddingHorizontal: space.lg,
   },
   topRow: {

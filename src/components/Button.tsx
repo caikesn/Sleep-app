@@ -87,10 +87,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: space.sm,
-    borderRadius: radius.lg,
+    borderRadius: radius.pill,
     paddingVertical: space.md,
     paddingHorizontal: space.lg,
-    minHeight: 52,
+    minHeight: 54,
   },
   primary: {
     backgroundColor: theme.emberDeep,

@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme, space, type } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { theme, space, type, gradients } from '../theme';
 
 type Props = {
   children: React.ReactNode;
@@ -11,18 +12,23 @@ type Props = {
   scroll?: boolean;
   /** Screens that fill edge-to-edge (timers) opt out of the horizontal padding. */
   style?: StyleProp<ViewStyle>;
+  /** Pinned to the bottom, outside the scroll area — for a primary CTA. */
+  footer?: React.ReactNode;
 };
 
 /**
  * Every screen's outer shell: warm background, safe-area top inset and an
  * optional header. Keeps padding and header treatment identical everywhere.
  */
-export default function Screen({ children, title, action, scroll, style }: Props) {
+export default function Screen({ children, title, action, scroll, style, footer }: Props) {
   const insets = useSafeAreaInsets();
   const Body = scroll ? ScrollView : View;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + space.md }, style]}>
+    <LinearGradient
+      colors={gradients.screen}
+      style={[styles.root, { paddingTop: insets.top + space.md }, style]}
+    >
       {(title || action) && (
         <View style={styles.header}>
           {title ? <Text style={styles.title}>{title}</Text> : <View />}
@@ -39,14 +45,14 @@ export default function Screen({ children, title, action, scroll, style }: Props
       >
         {children}
       </Body>
-    </View>
+      {footer && <View style={styles.footer}>{footer}</View>}
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: theme.bg,
   },
   header: {
     flexDirection: 'row',
@@ -74,5 +80,10 @@ const styles = StyleSheet.create({
   scrollBody: {
     paddingHorizontal: space.lg,
     paddingBottom: space.xl,
+  },
+  footer: {
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
+    paddingBottom: space.md,
   },
 });

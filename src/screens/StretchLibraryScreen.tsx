@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { Text, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import Screen from '../components/Screen';
-import Icon from '../components/Icon';
-import { theme, space, radius } from '../theme';
+import Button from '../components/Button';
+import SelectRow from '../components/SelectRow';
+import { theme, space } from '../theme';
 import { defaultRoutine, RoutineStep } from '../routineData';
 import type { ModulesStackParamList, RootStackParamList } from '../navigation';
 
@@ -31,49 +32,44 @@ export default function StretchLibraryScreen() {
     navigation.navigate('Session', { steps, title });
   }
 
-  const selectedCount = selected.size;
+  const chosen = defaultRoutine.filter((s) => selected.has(s.id));
+  const count = chosen.length;
+
+  const seconds = (count ? chosen : defaultRoutine).reduce((sum, s) => sum + s.seconds, 0);
+  const minutes = Math.max(1, Math.round(seconds / 60));
 
   return (
-    <Screen title="Stretches" action={{ label: 'Back', onPress: () => navigation.goBack() }}>
-      <Text style={styles.subtitle}>Tap a stretch to start it alone, or check a few to build a sequence.</Text>
-
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {defaultRoutine.map((item) => {
-          const isSelected = selected.has(item.id);
-          return (
-            <Pressable key={item.id} style={styles.row} onPress={() => start([item], item.name)}>
-              <Pressable
-                style={[styles.checkbox, isSelected && styles.checkboxChecked]}
-                onPress={() => toggle(item.id)}
-                hitSlop={10}
-              >
-                {isSelected && <Icon name="check" size={14} color="#1a0f08" />}
-              </Pressable>
-              <View style={styles.rowIcon}>
-                <Icon name={item.icon} size={17} color={theme.ember} />
-              </View>
-              <View style={styles.rowText}>
-                <Text style={styles.rowTitle}>{item.name}</Text>
-                <Text style={styles.rowSeconds}>{item.seconds}s</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {selectedCount > 0 && (
-        <Pressable
-          style={styles.startButton}
+    <Screen
+      title="Stretches"
+      action={{ label: 'Back', onPress: () => navigation.goBack() }}
+      footer={
+        <Button
+          label={count ? `Start ${count} stretch${count > 1 ? 'es' : ''}` : 'Start all'}
+          meta={`· ${minutes} min`}
           onPress={() =>
-            start(
-              defaultRoutine.filter((s) => selected.has(s.id)),
-              `Custom sequence (${selectedCount})`
-            )
+            count
+              ? start(chosen, count === 1 ? chosen[0].name : `Sequence of ${count}`)
+              : start(defaultRoutine, 'All stretches')
           }
-        >
-          <Text style={styles.startButtonText}>Start sequence ({selectedCount})</Text>
-        </Pressable>
-      )}
+        />
+      }
+    >
+      <Text style={styles.subtitle}>
+        Pick the ones you want tonight, or start the whole set.
+      </Text>
+
+      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        {defaultRoutine.map((item) => (
+          <SelectRow
+            key={item.id}
+            label={item.name}
+            icon={item.icon}
+            selected={selected.has(item.id)}
+            onPress={() => toggle(item.id)}
+            meta={item.seconds >= 60 ? `${Math.round(item.seconds / 60)}m` : `${item.seconds}s`}
+          />
+        ))}
+      </ScrollView>
     </Screen>
   );
 }
@@ -81,63 +77,11 @@ export default function StretchLibraryScreen() {
 const styles = StyleSheet.create({
   subtitle: {
     color: theme.textDim,
-    fontSize: 14,
-    marginBottom: space.md,
-  },
-  scrollContent: {
-    paddingBottom: space.md,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.card,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.cardBorder,
-    padding: space.md - 2,
-    marginBottom: space.sm,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: radius.sm - 2,
-    borderWidth: 2,
-    borderColor: theme.textFaint,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: space.md - 2,
-  },
-  checkboxChecked: {
-    backgroundColor: theme.ember,
-    borderColor: theme.ember,
-  },
-  rowIcon: {
-    width: 30,
-    marginLeft: space.sm + 4,
-  },
-  rowText: {
-    flex: 1,
-  },
-  rowTitle: {
-    color: theme.text,
     fontSize: 15,
-    fontWeight: '600',
+    marginBottom: space.lg,
+    lineHeight: 21,
   },
-  rowSeconds: {
-    color: theme.textDim,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  startButton: {
-    marginVertical: space.sm,
-    backgroundColor: theme.emberDeep,
-    borderRadius: radius.lg,
-    paddingVertical: space.md,
-    alignItems: 'center',
-  },
-  startButtonText: {
-    color: '#1a0f08',
-    fontSize: 16,
-    fontWeight: '700',
+  list: {
+    paddingBottom: space.md,
   },
 });

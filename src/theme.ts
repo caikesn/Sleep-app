@@ -25,7 +25,27 @@ export const theme = {
   // The wash applied during a routine when warm light is on.
   warmLight: '#241a10',
 
+  // Translucent ember for selectable surfaces — sits over the gradient rather
+  // than punching a flat card into it.
+  emberVeil: 'rgba(255, 157, 92, 0.07)',
+  emberEdge: 'rgba(255, 157, 92, 0.22)',
+
   danger: '#ff5c47',
+};
+
+/**
+ * Screen grounds. A single flat fill reads like a dark rectangle; a slow warm
+ * gradient reads like a room lit from one side.
+ *
+ * These stay deliberately dark. The reference apps this borrows from run bright
+ * mid-tone gradients because they're used in daylight — this one is opened in
+ * bed with the lights off, where the same values would be a flashlight.
+ */
+export const gradients = {
+  /** Default screen ground: a faint warm lift at the top. */
+  screen: ['#1d1610', '#14100c'] as const,
+  /** Session screens — a touch more ember, still far below reading brightness. */
+  session: ['#241a10', '#16110c'] as const,
 };
 
 /** Shared spacing scale so screens stop inventing their own margins. */

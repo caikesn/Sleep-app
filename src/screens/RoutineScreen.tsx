@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { theme, space, radius } from '../theme';
+import { theme, space, radius, gradients } from '../theme';
 import type { RootStackParamList } from '../navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Session'>;
@@ -56,10 +57,12 @@ export default function RoutineScreen({ route, navigation }: Props) {
   const progress = steps.length > 1 ? (stepIndex + 1) / steps.length : 1;
 
   return (
-    <View
+    <LinearGradient
+      // The warm-light toggle still swaps the whole ground; it just shifts
+      // between two gradients now rather than two flat fills.
+      colors={warmLight ? gradients.session : gradients.screen}
       style={[
         styles.container,
-        warmLight && styles.warmContainer,
         { paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.md },
       ]}
     >
@@ -115,18 +118,14 @@ export default function RoutineScreen({ route, navigation }: Props) {
           <Text style={styles.controlText}>{isLastStep ? 'Finish' : 'Skip'}</Text>
         </Pressable>
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.bg,
     paddingHorizontal: space.lg,
-  },
-  warmContainer: {
-    backgroundColor: theme.warmLight,
   },
   topRow: {
     flexDirection: 'row',
