@@ -23,6 +23,16 @@ const GLYPHS = {
   bell: 'bell',
   settings: 'settings',
 
+  // Routine builder. Reordering is two arrows rather than a drag handle: a
+  // handle promises a gesture this list doesn't implement, and arrows are the
+  // only version of this that a screen reader can drive.
+  routines: 'list',
+  plus: 'plus',
+  up: 'chevron-up',
+  down: 'chevron-down',
+  close: 'x',
+  trash: 'trash-2',
+
   // Achievements. Streaks get an upward line rather than the usual flame —
   // there isn't one in this set, and a flame would be the only warm-coloured
   // pictogram in an interface that gets its warmth from the tint instead.

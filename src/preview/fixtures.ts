@@ -1,4 +1,6 @@
 import type { LoggedSession } from '../sessions';
+import type { RoutinePlan } from '../routineData';
+import { BUILTIN_ROUTINE_ID, stepCatalog } from '../routineData';
 import type { SessionKind } from '../database.types';
 
 /**
@@ -80,3 +82,36 @@ export const FIXTURES: Record<string, LoggedSession[]> = {
 };
 
 export type FixtureName = keyof typeof FIXTURES;
+
+/**
+ * Saved routines, for the builder and the routine list. The ids are fixed rather
+ * than generated so `?preview=builder-edit` can name one of them.
+ */
+export const EDITABLE_ROUTINE_ID = '11111111-1111-4111-8111-111111111111';
+
+const ids = stepCatalog.map((step) => step.id);
+
+const savedRoutines: RoutinePlan[] = [
+  {
+    id: EDITABLE_ROUTINE_ID,
+    name: 'Quick wind-down',
+    // Short, out of catalog order, and with one stretch used twice — the three
+    // things the builder has to render correctly.
+    stepIds: [ids[0], ids[3], ids[0], ids[7]],
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '22222222-2222-4222-8222-222222222222',
+    name: 'Long night',
+    stepIds: [...ids, ids[6]],
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+/** Keyed by the same fixture names, so one `--fixture` drives every screen. */
+export const ROUTINE_FIXTURES: Record<string, { routines: RoutinePlan[]; activeId: string }> = {
+  empty: { routines: [], activeId: BUILTIN_ROUTINE_ID },
+  starting: { routines: [], activeId: BUILTIN_ROUTINE_ID },
+  steady: { routines: savedRoutines, activeId: EDITABLE_ROUTINE_ID },
+  veteran: { routines: savedRoutines, activeId: savedRoutines[1].id },
+};

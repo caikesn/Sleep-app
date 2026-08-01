@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
-import type { CompositeNavigationProp } from '@react-navigation/native';
+import type { CompositeNavigationProp, NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -19,6 +19,8 @@ import ProgressScreen from '../screens/ProgressScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ModulesScreen from '../screens/ModulesScreen';
 import StretchLibraryScreen from '../screens/StretchLibraryScreen';
+import RoutinesScreen from '../screens/RoutinesScreen';
+import RoutineBuilderScreen from '../screens/RoutineBuilderScreen';
 import RoutineScreen from '../screens/RoutineScreen';
 import MeditationScreen from '../screens/MeditationScreen';
 import RedLightTutorialScreen from '../screens/RedLightTutorialScreen';
@@ -32,15 +34,22 @@ export type RootStackParamList = {
   RedLightTutorial: undefined;
 };
 
+/**
+ * The nested stacks are named in the params so a screen in one tab can deep-link
+ * into another — Tonight jumps straight to the routine list, not just to Modules.
+ */
 export type TabParamList = {
   Tonight: undefined;
-  Modules: undefined;
-  You: undefined;
+  Modules: NavigatorScreenParams<ModulesStackParamList>;
+  You: NavigatorScreenParams<YouStackParamList>;
 };
 
 export type ModulesStackParamList = {
   ModulesHome: undefined;
   StretchLibrary: undefined;
+  Routines: undefined;
+  /** No id builds a new routine; `duplicate` copies one instead of editing it. */
+  RoutineBuilder: { routineId?: string; duplicate?: boolean } | undefined;
 };
 
 export type YouStackParamList = {
@@ -68,6 +77,8 @@ function ModulesNavigator() {
     <ModulesStack.Navigator screenOptions={{ headerShown: false }}>
       <ModulesStack.Screen name="ModulesHome" component={ModulesScreen} />
       <ModulesStack.Screen name="StretchLibrary" component={StretchLibraryScreen} />
+      <ModulesStack.Screen name="Routines" component={RoutinesScreen} />
+      <ModulesStack.Screen name="RoutineBuilder" component={RoutineBuilderScreen} />
     </ModulesStack.Navigator>
   );
 }

@@ -5,7 +5,9 @@ import Screen from '../components/Screen';
 import Button from '../components/Button';
 import Icon from '../components/Icon';
 import { theme, space, radius } from '../theme';
-import { defaultRoutine } from '../routineData';
+import { builtinRoutine, resolveSteps, routineMinutes } from '../routineData';
+import { loadActiveRoutine, refreshActiveRoutine } from '../routines';
+import type { SavedRoutine } from '../routines';
 import { loadCachedSettings, loadSettings } from '../storage';
 import { loadProgress } from '../sessions';
 import type { BadgeState } from '../achievements';
@@ -24,6 +26,7 @@ export default function TonightScreen() {
   );
   const [streak, setStreak] = useState(0);
   const [earned, setEarned] = useState<BadgeState | null>(null);
+  const [routine, setRoutine] = useState<SavedRoutine>(builtinRoutine);
 
   // Paint from cache immediately so switching tabs never waits on the network,
   // then reconcile with the server in the background — otherwise a fresh
@@ -33,6 +36,10 @@ export default function TonightScreen() {
       let active = true;
       loadCachedSettings().then((s) => active && setReminder(s));
       loadSettings().then((s) => active && setReminder(s));
+      // Same two-step for tonight's routine, so switching it in Modules is
+      // reflected here the instant you come back.
+      loadActiveRoutine().then((r) => active && setRoutine(r));
+      refreshActiveRoutine().then((r) => active && setRoutine(r));
       // Refetched on focus so finishing a routine updates the streak — and
       // announces any badge it just earned — the moment you land back here.
       loadProgress().then((p) => {
@@ -48,7 +55,8 @@ export default function TonightScreen() {
     }, [])
   );
 
-  const totalMinutes = Math.round(defaultRoutine.reduce((sum, s) => sum + s.seconds, 0) / 60);
+  const steps = resolveSteps(routine.stepIds);
+  const totalMinutes = routineMinutes(routine.stepIds);
 
   return (
     <Screen>
@@ -75,7 +83,13 @@ export default function TonightScreen() {
       </View>
 
       {earned && (
-        <Pressable style={styles.earnedCard} onPress={() => navigation.navigate('You')}>
+        <Pressable
+          style={styles.earnedCard}
+          // Named explicitly rather than just switching tabs: the You stack may
+          // have been left sitting on Settings, and a badge card must land on
+          // the badge case.
+          onPress={() => navigation.navigate('You', { screen: 'Progress' })}
+        >
           <View style={styles.earnedIcon}>
             <Icon name={earned.icon} size={20} color={theme.ember} />
           </View>
@@ -90,15 +104,31 @@ export default function TonightScreen() {
       <Button
         label="Start routine"
         meta={`· ${totalMinutes} min`}
-        onPress={() =>
-          navigation.navigate('Session', { steps: defaultRoutine, title: 'Night Routine' })
-        }
+        disabled={steps.length === 0}
+        onPress={() => navigation.navigate('Session', { steps, title: routine.name })}
       />
 
-      <Text style={styles.sectionLabel}>WHAT'S IN IT</Text>
+      <View style={styles.sectionHead}>
+        <Text style={styles.sectionLabel}>WHAT'S IN IT</Text>
+        {/* The routine's name doubles as the way to change it — a separate
+            "Change" link would say less in the same space. */}
+        <Pressable
+          style={styles.changeRow}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Tonight's routine: ${routine.name}. Change it.`}
+          onPress={() => navigation.navigate('Modules', { screen: 'Routines' })}
+        >
+          <Text style={styles.changeText} numberOfLines={1}>
+            {routine.name}
+          </Text>
+          <Icon name="chevron" size={14} color={theme.ember} />
+        </Pressable>
+      </View>
       <View style={styles.stepList}>
-        {defaultRoutine.map((step) => (
-          <View key={step.id} style={styles.stepRow}>
+        {steps.map((step, index) => (
+          // Keyed by position: a custom routine may use the same stretch twice.
+          <View key={`${step.id}-${index}`} style={styles.stepRow}>
             <View style={styles.stepIcon}>
               <Icon name={step.icon} size={17} color={theme.ember} />
             </View>
@@ -180,13 +210,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 1,
   },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.md,
+    marginTop: space.xl,
+    marginBottom: space.sm,
+  },
   sectionLabel: {
     color: theme.textFaint,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
-    marginTop: space.xl,
-    marginBottom: space.sm,
+  },
+  changeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
+    // Keeps a long routine name from pushing the chevron off the row.
+    flexShrink: 1,
+  },
+  changeText: {
+    color: theme.ember,
+    fontSize: 13,
+    fontWeight: '600',
+    flexShrink: 1,
   },
   stepList: {
     borderTopWidth: StyleSheet.hairlineWidth,

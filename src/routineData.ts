@@ -67,3 +67,84 @@ export const defaultRoutine: RoutineStep[] = [
     description: 'Lie flat on your back in savasana. Let your whole body sink and settle. Slow your breathing.',
   },
 ];
+
+/**
+ * Every step the builder can pick from. Identical to `defaultRoutine` today,
+ * because the built-in routine happens to use all of them — these separate as
+ * soon as the library grows past one routine's worth of material.
+ */
+export const stepCatalog: RoutineStep[] = defaultRoutine;
+
+/** A routine as it is stored: a name and an ordered list of catalog step ids. */
+export type RoutinePlan = {
+  id: string;
+  name: string;
+  stepIds: string[];
+  updatedAt: string;
+};
+
+export const BUILTIN_ROUTINE_ID = 'builtin';
+
+/**
+ * The one routine that always exists. Deliberately not stored anywhere: a fresh
+ * install with no signal and nothing saved still has something to start.
+ */
+export const builtinRoutine: RoutinePlan = {
+  id: BUILTIN_ROUTINE_ID,
+  name: 'Night Routine',
+  stepIds: defaultRoutine.map((step) => step.id),
+  updatedAt: new Date(0).toISOString(),
+};
+
+/** Matches the CHECK constraint on `routines.name`, so a save can't 400. */
+export const MAX_ROUTINE_NAME = 80;
+
+const BY_ID = new Map(stepCatalog.map((step) => [step.id, step]));
+
+export function stepById(id: string): RoutineStep | undefined {
+  return BY_ID.get(id);
+}
+
+/**
+ * Unknown ids are dropped rather than rendered blank. A routine saved against a
+ * step that a later release renames should quietly lose that step, not break.
+ */
+export function resolveSteps(stepIds: string[]): RoutineStep[] {
+  return stepIds.map(stepById).filter((step): step is RoutineStep => !!step);
+}
+
+export function routineSeconds(stepIds: string[]): number {
+  return resolveSteps(stepIds).reduce((sum, step) => sum + step.seconds, 0);
+}
+
+/** Whole minutes — but never rounds a real routine down to "0 min". */
+export function routineMinutes(stepIds: string[]): number {
+  const seconds = routineSeconds(stepIds);
+  return seconds === 0 ? 0 : Math.max(1, Math.round(seconds / 60));
+}
+
+/**
+ * Moves one step by `delta`. A move off either end returns the list untouched,
+ * so the arrows on the first and last rows are no-ops rather than errors.
+ */
+export function moveStep(stepIds: string[], index: number, delta: number): string[] {
+  const target = index + delta;
+  const inRange = (i: number) => i >= 0 && i < stepIds.length;
+  if (!inRange(index) || !inRange(target)) return stepIds;
+
+  const next = [...stepIds];
+  const [moved] = next.splice(index, 1);
+  next.splice(target, 0, moved);
+  return next;
+}
+
+/** By position, not by id — the same stretch may legitimately appear twice. */
+export function removeStep(stepIds: string[], index: number): string[] {
+  return stepIds.filter((_, i) => i !== index);
+}
+
+/** Trimmed and capped so the value always satisfies the database's own check. */
+export function cleanRoutineName(raw: string, fallback = 'My routine'): string {
+  const trimmed = raw.trim().slice(0, MAX_ROUTINE_NAME);
+  return trimmed.length > 0 ? trimmed : fallback;
+}

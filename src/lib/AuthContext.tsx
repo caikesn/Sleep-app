@@ -3,6 +3,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { clearLocalCache } from '../storage';
 import { clearSessionCache } from '../sessions';
+import { clearRoutineCache } from '../routines';
 
 type AuthState = {
   session: Session | null;
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // re-populate the cache from the outgoing user.
         await clearLocalCache();
         await clearSessionCache();
+        await clearRoutineCache();
       },
 
       async sendRecoveryCode(email) {

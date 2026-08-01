@@ -36,6 +36,11 @@ export default function Button({
 }: Props) {
   const inert = disabled || busy;
 
+  // A disabled primary drops its fill rather than fading it. Near-black text on
+  // ember at 40% opacity is near-black on near-black — the label vanished
+  // completely on the routine builder's empty state.
+  const muted = variant === 'primary' && !!disabled && !busy;
+
   return (
     <Pressable
       onPress={onPress}
@@ -49,7 +54,8 @@ export default function Button({
         variant === 'outline' && styles.outline,
         variant === 'quiet' && styles.quiet,
         pressed && !inert && styles.pressed,
-        inert && styles.disabled,
+        inert && !muted && styles.disabled,
+        muted && styles.primaryDisabled,
         style,
       ]}
     >
@@ -58,9 +64,13 @@ export default function Button({
       ) : (
         <>
           <Text
+            // Single line so a long routine name in the label can't grow the
+            // button to three lines.
+            numberOfLines={1}
             style={[
               styles.label,
               variant === 'primary' ? styles.labelOnEmber : styles.labelEmber,
+              muted && styles.labelMuted,
             ]}
           >
             {label}
@@ -70,6 +80,7 @@ export default function Button({
               style={[
                 styles.meta,
                 variant === 'primary' ? styles.metaOnEmber : styles.metaEmber,
+                muted && styles.labelMuted,
               ]}
             >
               {meta}
@@ -109,6 +120,14 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.4,
+  },
+  primaryDisabled: {
+    backgroundColor: theme.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.cardBorder,
+  },
+  labelMuted: {
+    color: theme.textFaint,
   },
   label: {
     fontSize: 16,

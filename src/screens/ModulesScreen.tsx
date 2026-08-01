@@ -31,6 +31,17 @@ export default function ModulesScreen() {
         <Icon name="chevron" size={18} color={theme.ember} />
       </Pressable>
 
+      <Pressable style={styles.card} onPress={() => navigation.navigate('Routines')}>
+        <View style={styles.cardIcon}>
+          <Icon name="routines" size={22} color={theme.ember} />
+        </View>
+        <View style={styles.cardText}>
+          <Text style={styles.cardTitle}>My Routines</Text>
+          <Text style={styles.cardBody}>Build your own wind-down, and choose the one for tonight.</Text>
+        </View>
+        <Icon name="chevron" size={18} color={theme.ember} />
+      </Pressable>
+
       <Pressable style={styles.card} onPress={() => navigation.navigate('Meditation')}>
         <View style={styles.cardIcon}>
           <Icon name="reading" size={22} color={theme.ember} />
