@@ -31,7 +31,6 @@ const GLYPHS = {
   streak: 'trending-up',
   layers: 'layers',
   sunset: 'sunset',
-  locked: 'lock',
 
   // Stretches. These describe the *movement* — a direction, a rotation, a
   // repetition — rather than trying to depict a pose, which no line-icon set

@@ -56,7 +56,13 @@ async function readJson<T>(key: string, fallback: T): Promise<T> {
 }
 
 const readQueue = () => readJson<LoggedSession[]>(QUEUE_KEY, []);
-const readLog = () => readJson<LoggedSession[]>(LOG_KEY, []);
+
+/**
+ * Normalised on the way out, not just on the way in. History is grouped by
+ * night on the assumption that same-night sessions are adjacent, so an
+ * out-of-order cache renders one night as two headings.
+ */
+const readLog = async () => newestFirst(await readJson<LoggedSession[]>(LOG_KEY, []));
 
 function newestFirst(rows: LoggedSession[]): LoggedSession[] {
   const merged = new Map<string, LoggedSession>();

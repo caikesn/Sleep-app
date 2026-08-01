@@ -27,13 +27,17 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "playwright": "^1.62.1",
     "typescript": "~5.9.2"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./tools/register-ts.mjs --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "shoot": "node tools/shoot.mjs"
   },
   "private": true
 }

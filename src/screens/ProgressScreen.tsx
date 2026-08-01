@@ -87,11 +87,10 @@ function BadgeTile({ badge, isNew }: { badge: BadgeState; isNew: boolean }) {
   return (
     <View style={[styles.badge, earned && styles.badgeEarned]}>
       <View style={[styles.badgeIcon, earned && styles.badgeIconEarned]}>
-        <Icon
-          name={earned ? badge.icon : 'locked'}
-          size={19}
-          color={earned ? theme.ember : theme.textFaint}
-        />
+        {/* A locked badge shows its own icon dimmed, not a padlock. Thirteen
+            identical locks read as a wall; thirteen faint shapes read as a
+            collection waiting to be filled. */}
+        <Icon name={badge.icon} size={19} color={earned ? theme.ember : theme.textFaint} />
       </View>
       <Text style={[styles.badgeName, earned && styles.badgeNameEarned]} numberOfLines={1}>
         {badge.name}
@@ -153,10 +152,26 @@ export default function ProgressScreen() {
       scroll
     >
       <View style={styles.hero}>
-        <Text style={styles.streakValue}>{stats.streak}</Text>
-        <Text style={styles.streakLabel}>
-          {stats.streak === 1 ? 'night in a row' : 'nights in a row'}
-        </Text>
+        {/* A 72pt zero is the first thing a new account would see, and it reads
+            as failure before you've had the chance to do anything. Below one,
+            the hero says what to do instead of scoring you on it. */}
+        {stats.streak > 0 ? (
+          <>
+            <Text style={styles.streakValue}>{stats.streak}</Text>
+            <Text style={styles.streakLabel}>
+              {stats.streak === 1 ? 'night in a row' : 'nights in a row'}
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.heroPhrase}>{stats.sessions === 0 ? 'Night one' : 'Tonight'}</Text>
+            <Text style={styles.streakLabel}>
+              {stats.sessions === 0
+                ? 'your first wind-down starts tonight'
+                : 'a streak begins with one night'}
+            </Text>
+          </>
+        )}
         <WeekStrip nights={nights} />
       </View>
 
@@ -225,6 +240,15 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     letterSpacing: -2,
     fontVariant: ['tabular-nums'],
+  },
+  heroPhrase: {
+    color: theme.text,
+    fontSize: 38,
+    fontWeight: '300',
+    letterSpacing: -0.5,
+    // Sits where the numeral's optical centre would be, so the week strip
+    // below doesn't shift when the first streak lands.
+    paddingVertical: space.md,
   },
   streakLabel: {
     color: theme.textDim,
@@ -314,13 +338,14 @@ const styles = StyleSheet.create({
   badgeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: space.sm,
+    justifyContent: 'space-between',
+    rowGap: space.sm,
   },
   badge: {
-    // Two per row: a basis under half leaves room for the gap, and flexGrow
-    // takes the slack back so the pair still fills the width.
-    flexBasis: '47%',
-    flexGrow: 1,
+    // Fixed width with space-between rather than flexGrow: the catalog has an
+    // odd number of badges, and a growing tile stretches the last one across
+    // the full width like a broken row.
+    width: '48.5%',
     backgroundColor: theme.card,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,

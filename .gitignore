@@ -38,6 +38,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# preview screenshots — for looking at, not keeping
+.screenshots/
+
 # generated native folders
 /ios
 /android
