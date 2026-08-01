@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import Screen from '../components/Screen';
+import Icon from '../components/Icon';
 import { theme, space, radius } from '../theme';
 import type { ModulesStackParamList, RootStackParamList } from '../navigation';
 
@@ -20,21 +21,25 @@ export default function ModulesScreen() {
       <Text style={styles.subtitle}>Pick something to wind down with.</Text>
 
       <Pressable style={styles.card} onPress={() => navigation.navigate('StretchLibrary')}>
-        <Text style={styles.cardEmoji}>🧘</Text>
+        <View style={styles.cardIcon}>
+          <Icon name="stretches" size={22} color={theme.ember} />
+        </View>
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>Yoga & Stretches</Text>
           <Text style={styles.cardBody}>Start one stretch, or pick several to run as a sequence.</Text>
         </View>
-        <Text style={styles.chevron}>→</Text>
+        <Icon name="chevron" size={18} color={theme.ember} />
       </Pressable>
 
       <Pressable style={styles.card} onPress={() => navigation.navigate('Meditation')}>
-        <Text style={styles.cardEmoji}>📖</Text>
+        <View style={styles.cardIcon}>
+          <Icon name="reading" size={22} color={theme.ember} />
+        </View>
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>Reading & Meditation</Text>
           <Text style={styles.cardBody}>A timed session with a Do Not Disturb reminder.</Text>
         </View>
-        <Text style={styles.chevron}>→</Text>
+        <Icon name="chevron" size={18} color={theme.ember} />
       </Pressable>
     </Screen>
   );
@@ -56,8 +61,13 @@ const styles = StyleSheet.create({
     padding: space.lg,
     marginBottom: space.md,
   },
-  cardEmoji: {
-    fontSize: 32,
+  cardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: theme.emberGlow,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: space.md,
   },
   cardText: {

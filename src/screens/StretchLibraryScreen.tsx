@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import Screen from '../components/Screen';
+import Icon from '../components/Icon';
 import { theme, space, radius } from '../theme';
 import { defaultRoutine, RoutineStep } from '../routineData';
 import type { ModulesStackParamList, RootStackParamList } from '../navigation';
@@ -46,9 +47,8 @@ export default function StretchLibraryScreen() {
                 onPress={() => toggle(item.id)}
                 hitSlop={10}
               >
-                {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                {isSelected && <Icon name="check" size={14} color="#1a0f08" />}
               </Pressable>
-              <Text style={styles.rowEmoji}>{item.emoji}</Text>
               <View style={styles.rowText}>
                 <Text style={styles.rowTitle}>{item.name}</Text>
                 <Text style={styles.rowSeconds}>{item.seconds}s</Text>

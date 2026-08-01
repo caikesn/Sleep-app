@@ -90,7 +90,6 @@ export default function RoutineScreen({ route, navigation }: Props) {
         <Text style={styles.stepCount}>
           {stepIndex + 1} of {steps.length}
         </Text>
-        <Text style={styles.emoji}>{step.emoji}</Text>
         <Text style={styles.stepName}>{step.name}</Text>
         <Text style={styles.description}>{step.description}</Text>
         <Text style={styles.timer}>{timeLabel}</Text>
@@ -200,10 +199,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1.5,
-    marginBottom: space.md,
-  },
-  emoji: {
-    fontSize: 60,
     marginBottom: space.md,
   },
   stepName: {

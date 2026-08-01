@@ -3,11 +3,12 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { theme, space, radius } from '../theme';
+import Icon, { IconName } from './Icon';
 
-const ICONS: Record<string, string> = {
-  Tonight: '🌙',
-  Modules: '🧘',
-  You: '☾',
+const ICONS: Record<string, IconName> = {
+  Tonight: 'tonight',
+  Modules: 'modules',
+  You: 'you',
 };
 
 /**
@@ -45,9 +46,11 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
             accessibilityLabel={label}
           >
             <View style={[styles.iconWrap, isFocused && styles.iconWrapActive]}>
-              <Text style={[styles.icon, !isFocused && styles.iconInactive]}>
-                {ICONS[route.name] ?? '•'}
-              </Text>
+              <Icon
+                name={ICONS[route.name] ?? 'tonight'}
+                size={19}
+                color={isFocused ? theme.ember : theme.textFaint}
+              />
             </View>
             <Text style={[styles.label, isFocused && styles.labelActive]}>{label}</Text>
           </Pressable>
@@ -78,12 +81,6 @@ const styles = StyleSheet.create({
   },
   iconWrapActive: {
     backgroundColor: theme.emberGlow,
-  },
-  icon: {
-    fontSize: 18,
-  },
-  iconInactive: {
-    opacity: 0.45,
   },
   label: {
     fontSize: 11,

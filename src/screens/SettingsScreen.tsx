@@ -4,6 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Screen from '../components/Screen';
+import Icon from '../components/Icon';
 import { theme, space, radius, type } from '../theme';
 import { loadSettings, saveSettings } from '../storage';
 import { cancelNightlyRoutine, ensurePermissions, scheduleNightlyRoutine } from '../notifications';
@@ -107,7 +108,7 @@ export default function SettingsScreen() {
           <Text style={styles.rowLabel}>Setting up red light</Text>
           <Text style={styles.caption}>Real bulbs, Night Shift and Night Light</Text>
         </View>
-        <Text style={styles.chevron}>→</Text>
+        <Icon name="chevron" size={18} color={theme.ember} />
       </Pressable>
 
       <Text style={styles.sectionLabel}>ACCOUNT</Text>
@@ -183,11 +184,6 @@ const styles = StyleSheet.create({
   },
   linkText: {
     flex: 1,
-  },
-  chevron: {
-    color: theme.ember,
-    fontSize: 18,
-    marginLeft: space.md,
   },
   email: {
     color: theme.text,

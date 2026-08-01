@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Screen from '../components/Screen';
-import { theme, space, radius } from '../theme';
+import Button from '../components/Button';
+import { theme, space } from '../theme';
 import { defaultRoutine } from '../routineData';
 import { loadCachedSettings, loadSettings } from '../storage';
 import type { RootStackParamList } from '../navigation';
@@ -53,24 +54,19 @@ export default function TonightScreen() {
         )}
       </View>
 
-      <Pressable
-        style={styles.startButton}
+      <Button
+        label="Start routine"
+        meta={`· ${totalMinutes} min`}
         onPress={() =>
           navigation.navigate('Session', { steps: defaultRoutine, title: 'Night Routine' })
         }
-      >
-        <Text style={styles.startButtonText}>Start routine</Text>
-        <Text style={styles.startButtonMeta}>
-          {defaultRoutine.length} steps · {totalMinutes} min
-        </Text>
-      </Pressable>
+      />
 
       <Text style={styles.sectionLabel}>WHAT'S IN IT</Text>
       <View style={styles.stepList}>
         {defaultRoutine.map((step, i) => (
           <View key={step.id} style={styles.stepRow}>
             <Text style={styles.stepIndex}>{String(i + 1).padStart(2, '0')}</Text>
-            <Text style={styles.stepEmoji}>{step.emoji}</Text>
             <Text style={styles.stepName}>{step.name}</Text>
             <Text style={styles.stepTime}>
               {step.seconds >= 60 ? `${Math.round(step.seconds / 60)}m` : `${step.seconds}s`}
@@ -105,24 +101,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: space.xs,
   },
-  startButton: {
-    backgroundColor: theme.emberDeep,
-    borderRadius: radius.lg,
-    paddingVertical: space.md + 2,
-    paddingHorizontal: space.lg,
-    alignItems: 'center',
-  },
-  startButtonText: {
-    color: '#1a0f08',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  startButtonMeta: {
-    color: 'rgba(26, 15, 8, 0.7)',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
   sectionLabel: {
     color: theme.textFaint,
     fontSize: 11,
@@ -148,10 +126,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     width: 26,
     fontVariant: ['tabular-nums'],
-  },
-  stepEmoji: {
-    fontSize: 16,
-    marginRight: space.sm,
   },
   stepName: {
     flex: 1,
