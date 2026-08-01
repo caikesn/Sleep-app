@@ -49,6 +49,9 @@ export default function StretchLibraryScreen() {
               >
                 {isSelected && <Icon name="check" size={14} color="#1a0f08" />}
               </Pressable>
+              <View style={styles.rowIcon}>
+                <Icon name={item.icon} size={17} color={theme.ember} />
+              </View>
               <View style={styles.rowText}>
                 <Text style={styles.rowTitle}>{item.name}</Text>
                 <Text style={styles.rowSeconds}>{item.seconds}s</Text>
@@ -108,14 +111,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.ember,
     borderColor: theme.ember,
   },
-  checkmark: {
-    color: '#1a0f08',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  rowEmoji: {
-    fontSize: 24,
-    marginRight: space.sm + 4,
+  rowIcon: {
+    width: 30,
+    marginLeft: space.sm + 4,
   },
   rowText: {
     flex: 1,

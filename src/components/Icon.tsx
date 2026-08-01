@@ -21,6 +21,18 @@ const GLYPHS = {
   check: 'check',
   clock: 'clock',
   bell: 'bell',
+
+  // Stretches. These describe the *movement* — a direction, a rotation, a
+  // repetition — rather than trying to depict a pose, which no line-icon set
+  // can do honestly.
+  breathe: 'wind',
+  rotate: 'rotate-cw',
+  arch: 'repeat',
+  fold: 'chevrons-down',
+  reach: 'corner-right-down',
+  cross: 'crosshair',
+  elevate: 'corner-right-up',
+  rest: 'moon',
 } as const;
 
 export type IconName = keyof typeof GLYPHS;

@@ -4,6 +4,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Screen from '../components/Screen';
 import Button from '../components/Button';
+import Icon from '../components/Icon';
 import { theme, space } from '../theme';
 import { defaultRoutine } from '../routineData';
 import { loadCachedSettings, loadSettings } from '../storage';
@@ -64,9 +65,11 @@ export default function TonightScreen() {
 
       <Text style={styles.sectionLabel}>WHAT'S IN IT</Text>
       <View style={styles.stepList}>
-        {defaultRoutine.map((step, i) => (
+        {defaultRoutine.map((step) => (
           <View key={step.id} style={styles.stepRow}>
-            <Text style={styles.stepIndex}>{String(i + 1).padStart(2, '0')}</Text>
+            <View style={styles.stepIcon}>
+              <Icon name={step.icon} size={17} color={theme.ember} />
+            </View>
             <Text style={styles.stepName}>{step.name}</Text>
             <Text style={styles.stepTime}>
               {step.seconds >= 60 ? `${Math.round(step.seconds / 60)}m` : `${step.seconds}s`}
@@ -120,12 +123,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.cardBorder,
   },
-  stepIndex: {
-    color: theme.textFaint,
-    fontSize: 12,
-    fontWeight: '700',
-    width: 26,
-    fontVariant: ['tabular-nums'],
+  stepIcon: {
+    width: 28,
   },
   stepName: {
     flex: 1,
