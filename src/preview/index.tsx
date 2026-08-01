@@ -9,6 +9,7 @@ import ProgressScreen from '../screens/ProgressScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import RoutinesScreen from '../screens/RoutinesScreen';
 import RoutineBuilderScreen from '../screens/RoutineBuilderScreen';
+import StretchLibraryScreen from '../screens/StretchLibraryScreen';
 import { FIXTURES, ROUTINE_FIXTURES, EDITABLE_ROUTINE_ID } from './fixtures';
 
 /**
@@ -34,6 +35,7 @@ const SCREENS: Record<string, { component: React.ComponentType<any>; params?: ob
   tonight: { component: TonightScreen },
   settings: { component: SettingsScreen },
   routines: { component: RoutinesScreen },
+  stretches: { component: StretchLibraryScreen },
   builder: { component: RoutineBuilderScreen },
   'builder-edit': {
     component: RoutineBuilderScreen,

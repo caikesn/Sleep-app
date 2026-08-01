@@ -89,21 +89,20 @@ export type FixtureName = keyof typeof FIXTURES;
  */
 export const EDITABLE_ROUTINE_ID = '11111111-1111-4111-8111-111111111111';
 
-const ids = stepCatalog.map((step) => step.id);
-
 const savedRoutines: RoutinePlan[] = [
   {
     id: EDITABLE_ROUTINE_ID,
     name: 'Quick wind-down',
     // Short, out of catalog order, and with one stretch used twice — the three
     // things the builder has to render correctly.
-    stepIds: [ids[0], ids[3], ids[0], ids[7]],
+    stepIds: ['long-exhale', 'supine-twist', 'long-exhale', 'final-relaxation'],
     updatedAt: new Date().toISOString(),
   },
   {
     id: '22222222-2222-4222-8222-222222222222',
     name: 'Long night',
-    stepIds: [...ids, ids[6]],
+    // Long enough to need scrolling in the builder, and spanning every category.
+    stepIds: stepCatalog.filter((_, i) => i % 2 === 0).map((step) => step.id),
     updatedAt: new Date().toISOString(),
   },
 ];

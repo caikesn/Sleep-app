@@ -1,9 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  CATEGORIES,
+  LEVELS,
   MAX_ROUTINE_NAME,
   builtinRoutine,
   cleanRoutineName,
+  filterSteps,
+  groupByCategory,
   moveStep,
   removeStep,
   resolveSteps,
@@ -24,6 +28,57 @@ test('the built-in routine resolves to real steps', () => {
 test('catalog step ids are unique', () => {
   const ids = stepCatalog.map((step) => step.id);
   assert.equal(new Set(ids).size, ids.length);
+});
+
+test('every step carries a real category and level, and has a description', () => {
+  const categories = new Set(CATEGORIES.map((entry) => entry.id));
+  const levels = new Set(LEVELS.map((entry) => entry.id));
+
+  for (const step of stepCatalog) {
+    assert.ok(categories.has(step.category), `${step.id} has an unknown category`);
+    assert.ok(levels.has(step.level), `${step.id} has an unknown level`);
+    assert.ok(step.seconds > 0, `${step.id} has no duration`);
+    assert.ok(step.description.length > 20, `${step.id} needs a real description`);
+  }
+});
+
+test('no category is left empty', () => {
+  // An empty category renders as a filter chip that leads nowhere.
+  for (const { id } of CATEGORIES) {
+    assert.ok(filterSteps({ category: id }).length > 0, `${id} has no steps`);
+  }
+});
+
+test('groupByCategory follows CATEGORIES order, not the order steps arrive in', () => {
+  const shuffled = [...stepCatalog].reverse();
+  const groups = groupByCategory(shuffled);
+  assert.deepEqual(
+    groups.map((group) => group.category),
+    CATEGORIES.map((entry) => entry.id)
+  );
+});
+
+test('groupByCategory drops empty groups so no bare headings render', () => {
+  const groups = groupByCategory(filterSteps({ category: 'breath' }));
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].category, 'breath');
+});
+
+test('filterSteps keeps catalog order and combines category with level', () => {
+  const deep = filterSteps({ level: 'deep' });
+  assert.ok(deep.every((step) => step.level === 'deep'));
+
+  const gentleHips = filterSteps({ category: 'hips', level: 'gentle' });
+  assert.ok(gentleHips.every((step) => step.category === 'hips' && step.level === 'gentle'));
+
+  const hips = filterSteps({ category: 'hips' });
+  const catalogOrder = stepCatalog.filter((step) => step.category === 'hips').map((s) => s.id);
+  assert.deepEqual(hips.map((step) => step.id), catalogOrder);
+});
+
+test('an empty filter is the whole catalog', () => {
+  assert.equal(filterSteps().length, stepCatalog.length);
+  assert.equal(filterSteps({ category: null, level: null }).length, stepCatalog.length);
 });
 
 test('unknown step ids are dropped rather than rendered blank', () => {

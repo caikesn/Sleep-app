@@ -3,21 +3,25 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Screen from '../components/Screen';
 import Button from '../components/Button';
+import Chips from '../components/Chips';
 import Field from '../components/Field';
 import Icon from '../components/Icon';
 import { theme, space, radius } from '../theme';
 import {
   BUILTIN_ROUTINE_ID,
+  CATEGORIES,
   MAX_ROUTINE_NAME,
   builtinRoutine,
   cleanRoutineName,
+  filterSteps,
+  groupByCategory,
+  levelName,
   moveStep,
   removeStep,
   resolveSteps,
   routineMinutes,
-  stepCatalog,
 } from '../routineData';
-import type { RoutineStep } from '../routineData';
+import type { RoutineStep, StepCategory } from '../routineData';
 import {
   createRoutine,
   deleteRoutine,
@@ -108,6 +112,7 @@ export default function RoutineBuilderScreen({ route, navigation }: Props) {
   const [stepIds, setStepIds] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [category, setCategory] = useState<StepCategory | null>(null);
 
   // The id to save under, fixed once. Held in a ref rather than state because
   // re-running the effect must never mint a second id for the same edit.
@@ -146,6 +151,7 @@ export default function RoutineBuilderScreen({ route, navigation }: Props) {
 
   const steps = resolveSteps(stepIds);
   const minutes = routineMinutes(stepIds);
+  const addGroups = groupByCategory(filterSteps({ category }));
 
   async function save() {
     const id = idRef.current;
@@ -225,21 +231,35 @@ export default function RoutineBuilderScreen({ route, navigation }: Props) {
         )}
 
         <Text style={styles.sectionLabel}>ADD A STEP</Text>
-        {stepCatalog.map((step) => (
-          <Pressable
-            key={step.id}
-            onPress={() => setStepIds((ids) => [...ids, step.id])}
-            accessibilityRole="button"
-            accessibilityLabel={`Add ${step.name}, ${length(step.seconds)}`}
-            style={({ pressed }) => [styles.addRow, pressed && styles.pressed]}
-          >
-            <Icon name={step.icon} size={18} color={theme.textDim} />
-            <Text style={styles.addName} numberOfLines={1}>
-              {step.name}
-            </Text>
-            <Text style={styles.addMeta}>{length(step.seconds)}</Text>
-            <Icon name="plus" size={16} color={theme.ember} />
-          </Pressable>
+        <Chips
+          options={CATEGORIES}
+          value={category}
+          onChange={setCategory}
+          allLabel="Everything"
+        />
+        {addGroups.map((group) => (
+          <View key={group.category}>
+            {addGroups.length > 1 && <Text style={styles.groupLabel}>{group.name}</Text>}
+            {group.steps.map((step) => (
+              <Pressable
+                key={step.id}
+                onPress={() => setStepIds((ids) => [...ids, step.id])}
+                accessibilityRole="button"
+                accessibilityLabel={`Add ${step.name}, ${length(step.seconds)}`}
+                style={({ pressed }) => [styles.addRow, pressed && styles.pressed]}
+              >
+                <Icon name={step.icon} size={18} color={theme.textDim} />
+                <Text style={styles.addName} numberOfLines={1}>
+                  {step.name}
+                </Text>
+                {step.level !== 'gentle' && (
+                  <Text style={styles.addTag}>{levelName(step.level)}</Text>
+                )}
+                <Text style={styles.addMeta}>{length(step.seconds)}</Text>
+                <Icon name="plus" size={16} color={theme.ember} />
+              </Pressable>
+            ))}
+          </View>
         ))}
 
         {editing && (
@@ -322,6 +342,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     backgroundColor: theme.bgRaised,
   },
+  groupLabel: {
+    color: theme.textFaint,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: space.lg,
+    marginBottom: space.xs,
+  },
   addRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -329,6 +358,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.cardBorder,
     paddingVertical: space.md - 2,
+  },
+  addTag: {
+    color: theme.textFaint,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.cardBorder,
+    borderRadius: radius.sm,
+    paddingHorizontal: space.sm - 2,
+    paddingVertical: 2,
+    overflow: 'hidden',
   },
   addName: {
     flex: 1,

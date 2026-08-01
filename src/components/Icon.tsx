@@ -47,11 +47,16 @@ const GLYPHS = {
   // can do honestly.
   breathe: 'wind',
   rotate: 'rotate-cw',
+  twist: 'rotate-ccw',
   arch: 'repeat',
   fold: 'chevrons-down',
   reach: 'corner-right-down',
   cross: 'crosshair',
   elevate: 'corner-right-up',
+  tilt: 'corner-left-down',
+  open: 'maximize-2',
+  draw: 'minimize-2',
+  lift: 'chevrons-up',
   rest: 'moon',
 } as const;
 

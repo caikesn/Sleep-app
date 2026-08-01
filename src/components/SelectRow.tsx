@@ -19,15 +19,19 @@ type Props = {
   onPress: () => void;
   /** Trailing text, e.g. a duration. */
   meta?: string;
+  /** Small qualifier before the meta, e.g. how deep a stretch goes. */
+  tag?: string;
 };
 
-export default function SelectRow({ label, icon, selected, onPress, meta }: Props) {
+export default function SelectRow({ label, icon, selected, onPress, meta, tag }: Props) {
+  const spoken = [label, tag, meta].filter(Boolean).join(', ');
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: !!selected }}
-      accessibilityLabel={meta ? `${label}, ${meta}` : label}
+      accessibilityLabel={spoken}
       style={({ pressed }) => [
         styles.pill,
         selected && styles.pillSelected,
@@ -38,6 +42,7 @@ export default function SelectRow({ label, icon, selected, onPress, meta }: Prop
       <Text style={[styles.label, selected && styles.labelSelected]} numberOfLines={1}>
         {label}
       </Text>
+      {tag && <Text style={styles.tag}>{tag}</Text>}
       {meta && <Text style={styles.meta}>{meta}</Text>}
       {/* Balances the icon so the label sits optically centred when there's no meta. */}
       {!meta && <View style={styles.spacer} />}
@@ -49,7 +54,9 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
+    // Tighter than the usual md so a name, a level tag and a duration all fit
+    // on one line — "Thread the Needle" was truncating at 16.
+    gap: space.sm + 2,
     backgroundColor: theme.emberVeil,
     borderWidth: 1,
     borderColor: theme.cardBorder,
@@ -73,6 +80,20 @@ const styles = StyleSheet.create({
   },
   labelSelected: {
     color: theme.text,
+  },
+  tag: {
+    color: theme.textFaint,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.cardBorder,
+    borderRadius: radius.sm,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    // Required on web, or the border ignores the radius on a Text node.
+    overflow: 'hidden',
   },
   meta: {
     color: theme.textFaint,
