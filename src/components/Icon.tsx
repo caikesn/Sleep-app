@@ -21,6 +21,17 @@ const GLYPHS = {
   check: 'check',
   clock: 'clock',
   bell: 'bell',
+  settings: 'settings',
+
+  // Achievements. Streaks get an upward line rather than the usual flame —
+  // there isn't one in this set, and a flame would be the only warm-coloured
+  // pictogram in an interface that gets its warmth from the tint instead.
+  award: 'award',
+  star: 'star',
+  streak: 'trending-up',
+  layers: 'layers',
+  sunset: 'sunset',
+  locked: 'lock',
 
   // Stretches. These describe the *movement* — a direction, a rotation, a
   // repetition — rather than trying to depict a pose, which no line-icon set

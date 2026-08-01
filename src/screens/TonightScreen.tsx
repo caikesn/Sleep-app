@@ -1,15 +1,15 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Screen from '../components/Screen';
 import Button from '../components/Button';
 import Icon from '../components/Icon';
-import { theme, space } from '../theme';
+import { theme, space, radius } from '../theme';
 import { defaultRoutine } from '../routineData';
 import { loadCachedSettings, loadSettings } from '../storage';
-import { computeStreak, loadNights } from '../sessions';
-import type { RootStackParamList } from '../navigation';
+import { loadProgress } from '../sessions';
+import type { BadgeState } from '../achievements';
+import type { TabScreenNavigation } from '../navigation';
 
 function formatTime(hour: number, minute: number): string {
   const d = new Date();
@@ -18,11 +18,12 @@ function formatTime(hour: number, minute: number): string {
 }
 
 export default function TonightScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<TabScreenNavigation>();
   const [reminder, setReminder] = useState<{ hour: number; minute: number; enabled: boolean } | null>(
     null
   );
   const [streak, setStreak] = useState(0);
+  const [earned, setEarned] = useState<BadgeState | null>(null);
 
   // Paint from cache immediately so switching tabs never waits on the network,
   // then reconcile with the server in the background — otherwise a fresh
@@ -32,8 +33,15 @@ export default function TonightScreen() {
       let active = true;
       loadCachedSettings().then((s) => active && setReminder(s));
       loadSettings().then((s) => active && setReminder(s));
-      // Refetched on focus so finishing a routine updates the streak on return.
-      loadNights().then((nights) => active && setStreak(computeStreak(nights)));
+      // Refetched on focus so finishing a routine updates the streak — and
+      // announces any badge it just earned — the moment you land back here.
+      loadProgress().then((p) => {
+        if (!active) return;
+        setStreak(p.stats.streak);
+        // Last in catalog order when several land at once — the hardest one
+        // earned, rather than whichever happened to be checked first.
+        setEarned(p.unseen[p.unseen.length - 1] ?? null);
+      });
       return () => {
         active = false;
       };
@@ -65,6 +73,19 @@ export default function TonightScreen() {
           </>
         )}
       </View>
+
+      {earned && (
+        <Pressable style={styles.earnedCard} onPress={() => navigation.navigate('You')}>
+          <View style={styles.earnedIcon}>
+            <Icon name={earned.icon} size={20} color={theme.ember} />
+          </View>
+          <View style={styles.earnedText}>
+            <Text style={styles.earnedEyebrow}>NEW ACHIEVEMENT</Text>
+            <Text style={styles.earnedName}>{earned.name}</Text>
+          </View>
+          <Icon name="chevron" size={18} color={theme.ember} />
+        </Pressable>
+      )}
 
       <Button
         label="Start routine"
@@ -124,6 +145,40 @@ const styles = StyleSheet.create({
     color: theme.textDim,
     fontSize: 14,
     marginTop: space.xs,
+  },
+  earnedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.emberVeil,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.emberEdge,
+    borderRadius: radius.lg,
+    padding: space.md,
+    marginBottom: space.md,
+  },
+  earnedIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: theme.emberGlow,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: space.md,
+  },
+  earnedText: {
+    flex: 1,
+  },
+  earnedEyebrow: {
+    color: theme.ember,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+  },
+  earnedName: {
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 1,
   },
   sectionLabel: {
     color: theme.textFaint,

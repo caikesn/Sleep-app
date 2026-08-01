@@ -73,7 +73,11 @@ export default function SettingsScreen() {
   }
 
   return (
-    <Screen title="You" scroll>
+    <Screen
+      title="Settings"
+      action={{ label: 'Done', onPress: () => navigation.goBack() }}
+      scroll
+    >
       <Text style={styles.sectionLabel}>WIND-DOWN REMINDER</Text>
       <View style={styles.card}>
         <Pressable onPress={() => setShowPicker(true)}>

@@ -49,3 +49,43 @@ export function computeStreak(nights: Iterable<string>, now: Date = new Date()):
   }
   return streak;
 }
+
+/**
+ * The longest run of consecutive nights ever recorded. Unlike the current
+ * streak this never goes down, which is the point — a badge you can lose by
+ * missing one night isn't a badge.
+ */
+export function longestStreak(nights: Iterable<string>): number {
+  const set = new Set(nights);
+  let best = 0;
+
+  for (const night of set) {
+    // Walk only from the first night of a run, so each run is counted once
+    // rather than once per night in it.
+    if (set.has(addDays(night, -1))) continue;
+
+    let run = 0;
+    let cursor = night;
+    while (set.has(cursor)) {
+      run += 1;
+      cursor = addDays(cursor, 1);
+    }
+    if (run > best) best = run;
+  }
+
+  return best;
+}
+
+/** The last `count` night keys ending tonight, oldest first — for week strips. */
+export function lastNights(count: number, now: Date = new Date()): string[] {
+  const tonight = nightOf(now);
+  const keys: string[] = [];
+  for (let i = count - 1; i >= 0; i -= 1) keys.push(addDays(tonight, -i));
+  return keys;
+}
+
+/** Parses a night key back to a local Date at midnight, for formatting. */
+export function nightDate(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}

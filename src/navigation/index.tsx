@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import type { CompositeNavigationProp } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import * as Notifications from 'expo-notifications';
 import { theme } from '../theme';
 import { defaultRoutine, RoutineStep } from '../routineData';
@@ -12,6 +15,7 @@ import TabBar from '../components/TabBar';
 import AuthScreen from '../screens/AuthScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import TonightScreen from '../screens/TonightScreen';
+import ProgressScreen from '../screens/ProgressScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ModulesScreen from '../screens/ModulesScreen';
 import StretchLibraryScreen from '../screens/StretchLibraryScreen';
@@ -39,9 +43,24 @@ export type ModulesStackParamList = {
   StretchLibrary: undefined;
 };
 
+export type YouStackParamList = {
+  Progress: undefined;
+  Settings: undefined;
+};
+
+/**
+ * Tonight both pushes a session onto the root stack and jumps to another tab,
+ * so it needs both navigators' methods rather than a cast that happens to work.
+ */
+export type TabScreenNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<TabParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const Tabs = createBottomTabNavigator<TabParamList>();
 const ModulesStack = createNativeStackNavigator<ModulesStackParamList>();
+const YouStack = createNativeStackNavigator<YouStackParamList>();
 
 // Keeps browsing the library inside the Modules tab, so the tab bar stays put.
 function ModulesNavigator() {
@@ -53,12 +72,23 @@ function ModulesNavigator() {
   );
 }
 
+// Progress is the tab's home and settings sit behind it: streaks and badges are
+// looked at often, the reminder time is set once.
+function YouNavigator() {
+  return (
+    <YouStack.Navigator screenOptions={{ headerShown: false }}>
+      <YouStack.Screen name="Progress" component={ProgressScreen} />
+      <YouStack.Screen name="Settings" component={SettingsScreen} />
+    </YouStack.Navigator>
+  );
+}
+
 function TabsNavigator() {
   return (
     <Tabs.Navigator screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
       <Tabs.Screen name="Tonight" component={TonightScreen} options={{ title: 'Tonight' }} />
       <Tabs.Screen name="Modules" component={ModulesNavigator} options={{ title: 'Modules' }} />
-      <Tabs.Screen name="You" component={SettingsScreen} options={{ title: 'You' }} />
+      <Tabs.Screen name="You" component={YouNavigator} options={{ title: 'You' }} />
     </Tabs.Navigator>
   );
 }
