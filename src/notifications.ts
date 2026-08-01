@@ -33,8 +33,8 @@ export async function scheduleNightlyRoutine(hour: number, minute: number): Prom
 
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: '🔴 Time to wind down',
-      body: 'Switch on red light mode and start your night routine.',
+      title: '🌙 Time to wind down',
+      body: 'Dim the lights and start your night routine.',
       data: { type: NIGHT_ROUTINE_CATEGORY },
       sound: 'default',
     },

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Switch, Pressable, Platform, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { theme } from '../theme';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Screen from '../components/Screen';
+import { theme, space, radius, type } from '../theme';
 import { loadSettings, saveSettings } from '../storage';
 import { cancelNightlyRoutine, ensurePermissions, scheduleNightlyRoutine } from '../notifications';
-
-type Props = {
-  onStartRoutine: () => void;
-};
+import type { RootStackParamList } from '../navigation';
 
 function timeToDate(hour: number, minute: number): Date {
   const d = new Date();
@@ -16,11 +16,12 @@ function timeToDate(hour: number, minute: number): Date {
 }
 
 function formatTime(hour: number, minute: number): string {
-  const d = timeToDate(hour, minute);
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return timeToDate(hour, minute).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
-export default function HomeScreen({ onStartRoutine }: Props) {
+export default function SettingsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   const [hour, setHour] = useState(21);
   const [minute, setMinute] = useState(30);
   const [enabled, setEnabled] = useState(false);
@@ -61,23 +62,19 @@ export default function HomeScreen({ onStartRoutine }: Props) {
   async function handleTimeChange(event: unknown, date?: Date) {
     setShowPicker(Platform.OS === 'ios');
     if (!date) return;
-    const h = date.getHours();
-    const m = date.getMinutes();
-    setHour(h);
-    setMinute(m);
+    setHour(date.getHours());
+    setMinute(date.getMinutes());
     if (enabled) {
-      await scheduleNightlyRoutine(h, m);
+      await scheduleNightlyRoutine(date.getHours(), date.getMinutes());
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Night Routine</Text>
-      <Text style={styles.subtitle}>Wind down, switch to red light, stretch it out.</Text>
-
+    <Screen title="You" scroll>
+      <Text style={styles.sectionLabel}>WIND-DOWN REMINDER</Text>
       <View style={styles.card}>
-        <Text style={styles.label}>Reminder time</Text>
         <Pressable onPress={() => setShowPicker(true)}>
+          <Text style={styles.caption}>Reminder time</Text>
           <Text style={styles.time}>{formatTime(hour, minute)}</Text>
         </Pressable>
 
@@ -92,71 +89,85 @@ export default function HomeScreen({ onStartRoutine }: Props) {
         )}
 
         <View style={styles.row}>
-          <Text style={styles.label}>Nightly reminder</Text>
-          <Switch value={enabled} onValueChange={handleToggle} />
+          <Text style={styles.rowLabel}>Remind me nightly</Text>
+          <Switch
+            value={enabled}
+            onValueChange={handleToggle}
+            trackColor={{ false: theme.cardBorder, true: theme.emberDeep }}
+            thumbColor={enabled ? theme.ember : theme.textFaint}
+          />
         </View>
       </View>
 
-      <Pressable style={styles.startButton} onPress={onStartRoutine}>
-        <Text style={styles.startButtonText}>Start routine now</Text>
+      <Text style={styles.sectionLabel}>LIGHT</Text>
+      <Pressable style={styles.linkRow} onPress={() => navigation.navigate('RedLightTutorial')}>
+        <View style={styles.linkText}>
+          <Text style={styles.rowLabel}>Setting up red light</Text>
+          <Text style={styles.caption}>Real bulbs, Night Shift and Night Light</Text>
+        </View>
+        <Text style={styles.chevron}>→</Text>
       </Pressable>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.bg,
-    padding: 24,
-    paddingTop: 80,
-  },
-  title: {
-    color: theme.text,
-    fontSize: 30,
+  sectionLabel: {
+    color: theme.textFaint,
+    fontSize: 11,
     fontWeight: '700',
-  },
-  subtitle: {
-    color: theme.textDim,
-    fontSize: 15,
-    marginTop: 6,
-    marginBottom: 32,
+    letterSpacing: 1.2,
+    marginBottom: space.sm,
+    marginTop: space.lg,
   },
   card: {
     backgroundColor: theme.card,
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.cardBorder,
+    padding: space.lg,
   },
-  label: {
+  caption: {
     color: theme.textDim,
-    fontSize: 14,
+    ...type.label,
+    fontWeight: '400',
   },
   time: {
     color: theme.text,
     fontSize: 40,
     fontWeight: '600',
-    marginTop: 8,
-    marginBottom: 20,
+    marginTop: space.xs,
+    marginBottom: space.md,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 16,
+    paddingTop: space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.textDim,
+    borderTopColor: theme.cardBorder,
   },
-  startButton: {
-    marginTop: 32,
-    backgroundColor: theme.accent,
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  startButtonText: {
+  rowLabel: {
     color: theme.text,
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '600',
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.card,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.cardBorder,
+    padding: space.lg,
+  },
+  linkText: {
+    flex: 1,
+  },
+  chevron: {
+    color: theme.ember,
+    fontSize: 18,
+    marginLeft: space.md,
   },
 });
