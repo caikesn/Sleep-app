@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Screen from '../components/Screen';
 import { theme, space, radius } from '../theme';
 import { defaultRoutine } from '../routineData';
-import { loadSettings } from '../storage';
+import { loadCachedSettings, loadSettings } from '../storage';
 import type { RootStackParamList } from '../navigation';
 
 function formatTime(hour: number, minute: number): string {
@@ -20,10 +20,17 @@ export default function TonightScreen() {
     null
   );
 
-  // Refetch on focus so a time changed in the You tab shows up here immediately.
+  // Paint from cache immediately so switching tabs never waits on the network,
+  // then reconcile with the server in the background — otherwise a fresh
+  // install or a second device would show "Anytime" despite a saved reminder.
   useFocusEffect(
     useCallback(() => {
-      loadSettings().then(setReminder);
+      let active = true;
+      loadCachedSettings().then((s) => active && setReminder(s));
+      loadSettings().then((s) => active && setReminder(s));
+      return () => {
+        active = false;
+      };
     }, [])
   );
 
