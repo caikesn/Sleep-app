@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { theme, space, radius, gradients } from '../theme';
+import { logSession } from '../sessions';
 import type { RootStackParamList } from '../navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Session'>;
@@ -22,6 +23,40 @@ export default function RoutineScreen({ route, navigation }: Props) {
 
   const step = steps[stepIndex];
   const isLastStep = stepIndex === steps.length - 1;
+
+  const startedAtRef = useRef(new Date());
+  const loggedRef = useRef(false);
+
+  // Idempotent: whichever exit path fires first wins, so an explicit finish is
+  // never overwritten by the abandon listener below.
+  const record = useCallback(
+    (completed: boolean) => {
+      if (loggedRef.current) return;
+      loggedRef.current = true;
+      const startedAt = startedAtRef.current;
+      const endedAt = new Date();
+      void logSession({
+        kind: steps.length === 1 ? 'stretch' : 'routine',
+        title,
+        started_at: startedAt.toISOString(),
+        ended_at: endedAt.toISOString(),
+        completed,
+        duration_seconds: Math.max(
+          0,
+          Math.round((endedAt.getTime() - startedAt.getTime()) / 1000)
+        ),
+      });
+    },
+    [steps.length, title]
+  );
+
+  // Covers every way out that isn't finishing — End, hardware back, swipe.
+  // `beforeRemove` fires only on real navigation, so unlike an unmount cleanup
+  // it can't log a phantom session when an effect is re-run in development.
+  useEffect(() => navigation.addListener('beforeRemove', () => record(false)), [
+    navigation,
+    record,
+  ]);
 
   useEffect(() => {
     if (paused) return;
@@ -44,6 +79,7 @@ export default function RoutineScreen({ route, navigation }: Props) {
 
   function goToStep(index: number) {
     if (index >= steps.length) {
+      record(true);
       navigation.goBack();
       return;
     }

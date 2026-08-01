@@ -8,6 +8,7 @@ import Icon from '../components/Icon';
 import { theme, space } from '../theme';
 import { defaultRoutine } from '../routineData';
 import { loadCachedSettings, loadSettings } from '../storage';
+import { computeStreak, loadNights } from '../sessions';
 import type { RootStackParamList } from '../navigation';
 
 function formatTime(hour: number, minute: number): string {
@@ -21,6 +22,7 @@ export default function TonightScreen() {
   const [reminder, setReminder] = useState<{ hour: number; minute: number; enabled: boolean } | null>(
     null
   );
+  const [streak, setStreak] = useState(0);
 
   // Paint from cache immediately so switching tabs never waits on the network,
   // then reconcile with the server in the background — otherwise a fresh
@@ -30,6 +32,8 @@ export default function TonightScreen() {
       let active = true;
       loadCachedSettings().then((s) => active && setReminder(s));
       loadSettings().then((s) => active && setReminder(s));
+      // Refetched on focus so finishing a routine updates the streak on return.
+      loadNights().then((nights) => active && setStreak(computeStreak(nights)));
       return () => {
         active = false;
       };
@@ -41,7 +45,14 @@ export default function TonightScreen() {
   return (
     <Screen>
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>TONIGHT</Text>
+        <View style={styles.eyebrowRow}>
+          <Text style={styles.eyebrow}>TONIGHT</Text>
+          {streak > 0 && (
+            <Text style={styles.streak}>
+              {streak} night{streak > 1 ? 's' : ''} in a row
+            </Text>
+          )}
+        </View>
         {reminder?.enabled ? (
           <>
             <Text style={styles.time}>{formatTime(reminder.hour, reminder.minute)}</Text>
@@ -86,12 +97,22 @@ const styles = StyleSheet.create({
     paddingTop: space.lg,
     paddingBottom: space.xl,
   },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: space.sm,
+  },
   eyebrow: {
     color: theme.ember,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 2,
-    marginBottom: space.sm,
+  },
+  streak: {
+    color: theme.textDim,
+    fontSize: 12,
+    fontWeight: '600',
   },
   time: {
     color: theme.text,

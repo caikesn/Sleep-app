@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { theme, space, radius, gradients } from '../theme';
 import { MEDITATION_DURATIONS, MEDITATION_PROMPTS, READING_PROMPT } from '../meditationData';
+import { logSession } from '../sessions';
 import type { RootStackParamList } from '../navigation';
 
 type Mode = 'meditation' | 'reading';
@@ -19,6 +20,38 @@ export default function MeditationScreen({ navigation }: Props) {
   const [mode, setMode] = useState<Mode>('meditation');
   const [durationMinutes, setDurationMinutes] = useState(5);
   const [stage, setStage] = useState<Stage>('setup');
+
+  // Null until the timer actually starts — backing out of setup or the DND
+  // prompt is not a session and must not be logged as an abandoned one.
+  const startedAtRef = useRef<Date | null>(null);
+  const loggedRef = useRef(false);
+
+  const record = useCallback(
+    (completed: boolean) => {
+      const startedAt = startedAtRef.current;
+      if (!startedAt || loggedRef.current) return;
+      loggedRef.current = true;
+      const endedAt = new Date();
+      void logSession({
+        kind: mode === 'meditation' ? 'meditation' : 'reading',
+        title: mode === 'meditation' ? 'Meditation' : 'Reading',
+        started_at: startedAt.toISOString(),
+        ended_at: endedAt.toISOString(),
+        completed,
+        duration_seconds: Math.max(
+          0,
+          Math.round((endedAt.getTime() - startedAt.getTime()) / 1000)
+        ),
+      });
+    },
+    [mode]
+  );
+
+  // Backing out mid-session with the gesture or hardware back still counts.
+  useEffect(() => navigation.addListener('beforeRemove', () => record(false)), [
+    navigation,
+    record,
+  ]);
 
   return (
     <LinearGradient
@@ -39,13 +72,22 @@ export default function MeditationScreen({ navigation }: Props) {
         />
       )}
       {stage === 'dnd' && (
-        <DndStage onBack={() => setStage('setup')} onContinue={() => setStage('running')} />
+        <DndStage
+          onBack={() => setStage('setup')}
+          onContinue={() => {
+            startedAtRef.current = new Date();
+            setStage('running');
+          }}
+        />
       )}
       {stage === 'running' && (
         <RunningStage
           mode={mode}
           durationMinutes={durationMinutes}
-          onFinish={() => navigation.goBack()}
+          onDone={(completed) => {
+            record(completed);
+            navigation.goBack();
+          }}
         />
       )}
     </LinearGradient>
@@ -146,11 +188,12 @@ function DndStage({ onBack, onContinue }: { onBack: () => void; onContinue: () =
 function RunningStage({
   mode,
   durationMinutes,
-  onFinish,
+  onDone,
 }: {
   mode: Mode;
   durationMinutes: number;
-  onFinish: () => void;
+  /** `completed` distinguishes running the clock out from ending early. */
+  onDone: (completed: boolean) => void;
 }) {
   useKeepAwake();
 
@@ -172,7 +215,7 @@ function RunningStage({
   }, [paused]);
 
   useEffect(() => {
-    if (secondsLeft === 0) onFinish();
+    if (secondsLeft === 0) onDone(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [secondsLeft]);
 
@@ -196,7 +239,7 @@ function RunningStage({
     <>
       <Header
         title={mode === 'meditation' ? 'Meditating' : 'Reading'}
-        action={{ label: 'End', onPress: onFinish }}
+        action={{ label: 'End', onPress: () => onDone(false) }}
       />
 
       <View style={styles.runArea}>
@@ -211,7 +254,7 @@ function RunningStage({
         >
           <Text style={[styles.controlText, styles.pauseText]}>{paused ? 'Resume' : 'Pause'}</Text>
         </Pressable>
-        <Pressable style={styles.controlButton} onPress={onFinish}>
+        <Pressable style={styles.controlButton} onPress={() => onDone(false)}>
           <Text style={styles.controlText}>End</Text>
         </Pressable>
       </View>

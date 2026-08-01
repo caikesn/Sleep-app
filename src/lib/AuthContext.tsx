@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { clearLocalCache } from '../storage';
+import { clearSessionCache } from '../sessions';
 
 type AuthState = {
   session: Session | null;
@@ -81,6 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Order matters: clear only after the session is gone, so nothing can
         // re-populate the cache from the outgoing user.
         await clearLocalCache();
+        await clearSessionCache();
       },
 
       async sendRecoveryCode(email) {
