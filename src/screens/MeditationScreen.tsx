@@ -21,7 +21,18 @@ import {
 } from '../meditationData';
 import type { BellSetting } from '../meditationData';
 import { BREATH_PATTERNS, breathsIn, patternById } from '../breathing';
-import { prepareBells, releaseBells, ring } from '../audio';
+import { SOUNDSCAPES, SOUND_OFF, VOLUME_LEVELS, gainFor, soundscapeById } from '../soundscapes';
+import type { VolumeLevel } from '../soundscapes';
+import { SOUNDSCAPE_FILES } from '../soundscapeAssets';
+import {
+  prepareBells,
+  releaseBells,
+  ring,
+  setSoundscapeGain,
+  setSoundscapePaused,
+  startSoundscape,
+  stopSoundscape,
+} from '../audio';
 import { logSession } from '../sessions';
 import type { RootStackParamList } from '../navigation';
 
@@ -45,6 +56,8 @@ export default function MeditationScreen({ navigation }: Props) {
   const [guideId, setGuideId] = useState(UNGUIDED_ID);
   const [patternId, setPatternId] = useState(BREATH_PATTERNS[0].id);
   const [bells, setBells] = useState<BellSetting>('ends');
+  const [soundId, setSoundId] = useState<string>(SOUND_OFF);
+  const [volume, setVolume] = useState<VolumeLevel>('medium');
 
   const guide = guidedById(guideId);
   const pattern = patternById(patternId) ?? BREATH_PATTERNS[0];
@@ -55,8 +68,15 @@ export default function MeditationScreen({ navigation }: Props) {
   const loggedRef = useRef(false);
 
   // Players hold a native handle, so they are freed when the screen goes rather
-  // than left to accumulate one set per visit.
-  useEffect(() => releaseBells, []);
+  // than left to accumulate one set per visit. The soundscape especially: it is
+  // looping, so a leaked one would still be playing on the next screen.
+  useEffect(
+    () => () => {
+      void stopSoundscape();
+      releaseBells();
+    },
+    []
+  );
 
   function sessionTitle(): string {
     if (mode === 'reading') return 'Reading';
@@ -115,6 +135,10 @@ export default function MeditationScreen({ navigation }: Props) {
           onPatternChange={setPatternId}
           bells={bells}
           onBellsChange={setBells}
+          soundId={soundId}
+          onSoundChange={setSoundId}
+          volume={volume}
+          onVolumeChange={setVolume}
           onClose={() => navigation.goBack()}
           onStart={() => setStage('dnd')}
         />
@@ -136,6 +160,8 @@ export default function MeditationScreen({ navigation }: Props) {
           guideId={guideId}
           patternId={patternId}
           bells={bells}
+          soundId={soundId}
+          volume={volume}
           onDone={(completed) => {
             record(completed);
             navigation.goBack();
@@ -234,6 +260,10 @@ function SetupStage({
   onPatternChange,
   bells,
   onBellsChange,
+  soundId,
+  onSoundChange,
+  volume,
+  onVolumeChange,
   onClose,
   onStart,
 }: {
@@ -247,10 +277,29 @@ function SetupStage({
   onPatternChange: (id: string) => void;
   bells: BellSetting;
   onBellsChange: (setting: BellSetting) => void;
+  soundId: string;
+  onSoundChange: (id: string) => void;
+  volume: VolumeLevel;
+  onVolumeChange: (level: VolumeLevel) => void;
   onClose: () => void;
   onStart: () => void;
 }) {
   const pattern = patternById(patternId) ?? BREATH_PATTERNS[0];
+
+  // Picking a soundscape plays it straight away. You cannot choose between five
+  // ambient loops by reading their names, and it would be absurd to make
+  // someone start a twenty-minute session to find out what "Embers" is.
+  function chooseSound(id: string) {
+    onSoundChange(id);
+    const track = soundscapeById(id);
+    if (track) void startSoundscape(SOUNDSCAPE_FILES[track.id], gainFor(volume));
+    else void stopSoundscape();
+  }
+
+  function chooseVolume(level: VolumeLevel) {
+    onVolumeChange(level);
+    setSoundscapeGain(gainFor(level));
+  }
 
   return (
     <>
@@ -354,6 +403,24 @@ function SetupStage({
           A soft bell to open and close the session, and optionally to mark time in between. Each
           one is a gentle tap as well, so it still lands with the phone silenced.
         </Text>
+
+        <Text style={styles.sectionLabel}>SOUND</Text>
+        <PillRow
+          options={[{ id: SOUND_OFF, name: 'Off' }, ...SOUNDSCAPES]}
+          value={soundId}
+          onChange={chooseSound}
+        />
+        {soundId !== SOUND_OFF && (
+          <>
+            <Text style={styles.sectionLabel}>VOLUME</Text>
+            <PillRow options={VOLUME_LEVELS} value={volume} onChange={chooseVolume} />
+          </>
+        )}
+        <Text style={styles.footnote}>
+          Plays quietly under the session and fades out at the end. Tapping one starts it now, so
+          you can hear it before you commit. Anything already playing — your own music, a podcast —
+          keeps going underneath.
+        </Text>
       </ScrollView>
 
       <Pressable style={styles.primaryButton} onPress={onStart}>
@@ -398,6 +465,8 @@ function RunningStage({
   guideId,
   patternId,
   bells,
+  soundId,
+  volume,
   onDone,
 }: {
   mode: Mode;
@@ -406,6 +475,8 @@ function RunningStage({
   guideId: string;
   patternId: string;
   bells: BellSetting;
+  soundId: string;
+  volume: VolumeLevel;
   /** `completed` distinguishes running the clock out from ending early. */
   onDone: (completed: boolean) => void;
 }) {
@@ -428,6 +499,21 @@ function RunningStage({
   useEffect(() => {
     if (bells !== 'off') void prepareBells();
   }, [bells]);
+
+  // Mount only: neither the track nor the level can change once running, and
+  // re-running this would restart the loop underneath the listener. The fade-out
+  // in the cleanup deliberately outlives the screen — an ambience that vanishes
+  // the instant a session ends is a jolt in a dark room.
+  useEffect(() => {
+    const track = soundscapeById(soundId);
+    if (track) void startSoundscape(SOUNDSCAPE_FILES[track.id], gainFor(volume));
+    return () => {
+      void stopSoundscape();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => setSoundscapePaused(paused), [paused]);
 
   useEffect(() => {
     if (paused) return;

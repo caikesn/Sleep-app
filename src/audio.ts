@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 
 /**
- * The meditation bells.
+ * The meditation bells and the background soundscapes.
  *
  * Two rules shape this file:
  *
@@ -125,4 +125,140 @@ export function releaseBells(): void {
   // Cleared too, or the next session would short-circuit on a resolved promise
   // and never rebuild the players it just threw away.
   loading = null;
+}
+
+/* ── soundscapes ────────────────────────────────────────────────────────── */
+
+const FADE_MS = 2000;
+/** Used when swapping one track for another rather than stopping outright. */
+const REPLACE_FADE_MS = 250;
+const FADE_STEPS = 30;
+
+let ambience: AudioPlayer | null = null;
+/** Which asset is loaded, so an unchanged track is never restarted. */
+let ambienceSource: number | null = null;
+let target = 0;
+let fade: ReturnType<typeof setInterval> | null = null;
+
+function stopFade(): void {
+  if (fade) clearInterval(fade);
+  fade = null;
+}
+
+/**
+ * Ramps the loop's volume over `FADE_MS`, optionally freeing the player at the
+ * end.
+ *
+ * Ambience must never start or stop abruptly. The whole point of it is that you
+ * stop noticing it's there, and nothing breaks that faster than it appearing
+ * out of nowhere — or worse, vanishing at the exact moment a session ends,
+ * which lands as a jolt in a dark room.
+ */
+function rampTo(value: number, thenRelease = false, durationMs = FADE_MS): void {
+  stopFade();
+
+  const player = ambience;
+  if (!player) return;
+
+  let from = 0;
+  try {
+    from = player.volume;
+  } catch {
+    // Ignored; a fade from zero is still a fade.
+  }
+
+  let step = 0;
+  fade = setInterval(() => {
+    step += 1;
+    const progress = Math.min(1, step / FADE_STEPS);
+
+    try {
+      player.volume = from + (value - from) * progress;
+    } catch {
+      // Ignored.
+    }
+
+    if (progress < 1) return;
+    stopFade();
+    if (!thenRelease) return;
+
+    try {
+      player.pause();
+      player.remove();
+    } catch {
+      // Ignored.
+    }
+    if (ambience === player) {
+      ambience = null;
+      ambienceSource = null;
+    }
+  }, durationMs / FADE_STEPS);
+}
+
+/** Starts a looping soundscape, fading it in from silence. */
+export async function startSoundscape(source: number, gain: number): Promise<void> {
+  // Already playing this one. Someone who previewed a track on the setup screen
+  // and then started the session should hear it carry straight through, not dip
+  // out and back in because the running screen restarted it.
+  if (ambience && ambienceSource === source) {
+    setSoundscapeGain(gain);
+    return;
+  }
+
+  // Quick, not the full fade: this path is someone auditioning tracks on the
+  // setup screen, and two seconds of silence between taps is a long time when
+  // you are comparing two of them.
+  await stopSoundscape(REPLACE_FADE_MS);
+  target = gain;
+
+  try {
+    await prepareBells();
+    const player = createAudioPlayer(source);
+    player.loop = true;
+    player.volume = 0;
+    player.play();
+    ambience = player;
+    ambienceSource = source;
+    rampTo(gain);
+  } catch {
+    ambience = null;
+    ambienceSource = null;
+  }
+}
+
+/** Applied immediately: this is someone dragging the level while listening. */
+export function setSoundscapeGain(gain: number): void {
+  target = gain;
+  stopFade();
+  try {
+    if (ambience) ambience.volume = gain;
+  } catch {
+    // Ignored.
+  }
+}
+
+export function setSoundscapePaused(paused: boolean): void {
+  try {
+    if (!ambience) return;
+    if (paused) ambience.pause();
+    else {
+      ambience.play();
+      // Volume is restored explicitly: pausing part-way through the opening
+      // fade would otherwise resume stuck at whatever level it had reached.
+      ambience.volume = target;
+    }
+  } catch {
+    // Ignored.
+  }
+}
+
+/** Fades out and frees the player. Resolves once the fade has finished. */
+export function stopSoundscape(durationMs = FADE_MS): Promise<void> {
+  if (!ambience) {
+    stopFade();
+    return Promise.resolve();
+  }
+
+  rampTo(0, true, durationMs);
+  return new Promise((resolve) => setTimeout(resolve, durationMs + 50));
 }

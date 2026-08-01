@@ -1,4 +1,5 @@
 import { mkdir, writeFile } from 'node:fs/promises';
+import { RATE, encodeWav, normalisePeak } from './wav.mjs';
 
 /**
  * Generates the meditation bells into assets/audio/.
@@ -14,8 +15,6 @@ import { mkdir, writeFile } from 'node:fs/promises';
  * below it. That uneven decay is what stops additive synthesis sounding like an
  * organ: the high partials are the strike, the fundamental is the ring.
  */
-
-const RATE = 22050;
 
 /** Ratios and levels roughly modelled on a small singing bowl. */
 const PARTIALS = [
@@ -55,36 +54,8 @@ function render({ frequency, seconds, decay }) {
   return samples;
 }
 
-function toWav(samples) {
-  let peak = 0;
-  for (const sample of samples) peak = Math.max(peak, Math.abs(sample));
-  // Leaves headroom rather than normalising to full scale — this plays quietly
-  // in a dark room, not at a mastering level.
-  const gain = peak > 0 ? 0.62 / peak : 0;
-
-  const data = Buffer.alloc(samples.length * 2);
-  for (let i = 0; i < samples.length; i += 1) {
-    const clamped = Math.max(-1, Math.min(1, samples[i] * gain));
-    data.writeInt16LE(Math.round(clamped * 32767), i * 2);
-  }
-
-  const header = Buffer.alloc(44);
-  header.write('RIFF', 0);
-  header.writeUInt32LE(36 + data.length, 4);
-  header.write('WAVE', 8);
-  header.write('fmt ', 12);
-  header.writeUInt32LE(16, 16); // PCM chunk size
-  header.writeUInt16LE(1, 20); // format: PCM
-  header.writeUInt16LE(1, 22); // channels: mono
-  header.writeUInt32LE(RATE, 24);
-  header.writeUInt32LE(RATE * 2, 28); // byte rate
-  header.writeUInt16LE(2, 32); // block align
-  header.writeUInt16LE(16, 34); // bits per sample
-  header.write('data', 36);
-  header.writeUInt32LE(data.length, 40);
-
-  return Buffer.concat([header, data]);
-}
+/** Leaves headroom: this plays quietly in a dark room, not at a mastering level. */
+const toWav = (samples) => encodeWav(normalisePeak(samples, 0.62));
 
 const BELLS = [
   // Interval: higher and shorter, so it marks time without ending anything.
