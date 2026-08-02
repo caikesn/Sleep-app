@@ -76,7 +76,7 @@ export default function ForgotPasswordScreen() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + space.xxl }]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.eyebrow}>NIGHT ROUTINE</Text>
+        <Text style={styles.eyebrow}>WICK</Text>
         <Text style={styles.title}>
           {requesting ? 'Reset your password' : 'Choose a new password'}
         </Text>

@@ -24,8 +24,11 @@ export async function scheduleNightlyRoutine(hour: number, minute: number): Prom
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   if (Platform.OS === 'android') {
+    // The channel *id* stays `night-routine` — it is the identifier Android
+    // keys a channel by, and it names the reminder, not the app. The `name` is
+    // the string the user reads in system settings, so that one is the app's.
     await Notifications.setNotificationChannelAsync('night-routine', {
-      name: 'Night Routine',
+      name: 'Wind-down reminder',
       importance: Notifications.AndroidImportance.HIGH,
       sound: 'default',
     });
@@ -33,7 +36,10 @@ export async function scheduleNightlyRoutine(hour: number, minute: number): Prom
 
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: '🌙 Time to wind down',
+      // No emoji. The app replaced every emoji with line icons because the
+      // platform draws them in its own multicolour font, and this notification
+      // now carries the Wick flame as its own monochrome icon anyway.
+      title: 'Time to wind down',
       body: 'Dim the lights and start your night routine.',
       data: { type: NIGHT_ROUTINE_CATEGORY },
       sound: 'default',

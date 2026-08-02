@@ -1,5 +1,5 @@
 {
-  "name": "sleep-app",
+  "name": "wick",
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
@@ -40,6 +40,7 @@
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./tools/register-ts.mjs --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "shoot": "node tools/shoot.mjs",
+    "icons": "node tools/make-icon.mjs",
     "check:audio": "node tools/check-audio.mjs"
   },
   "private": true
