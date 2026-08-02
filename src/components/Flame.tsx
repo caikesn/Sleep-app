@@ -15,16 +15,40 @@ import { duration, easing } from '../motion';
  * is opened by someone trying to stop looking at their phone. It breathes at
  * roughly the pace the breathing pacer asks you to, which is the point.
  */
+/** Anything that can be multiplied into the idle: a constant or a driven value. */
+type Driver = number | Animated.Value | Animated.AnimatedInterpolation<number>;
+
 export default function Flame({
   size = 96,
+  dim,
+  scale,
+  still,
   style,
 }: {
   size?: number;
+  /**
+   * Multiplied into the idle's opacity. Tonight drives this off how far the
+   * evening has burned down, so the mark fades as the wick goes.
+   */
+  dim?: Driver;
+  /**
+   * Multiplied into the idle's scale, so a shrinking flame still breathes.
+   * Scale rather than a smaller `size`: width and height cannot be driven
+   * natively, and a flame that stutters is worse than one that doesn't move.
+   */
+  scale?: Driver;
+  /** Holds the swell at its mid point, for reduced motion. */
+  still?: boolean;
   style?: StyleProp<ImageStyle>;
 }) {
   const swell = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (still) {
+      swell.setValue(0.5);
+      return;
+    }
+
     const cycle = Animated.loop(
       Animated.sequence([
         Animated.timing(swell, {
@@ -44,7 +68,10 @@ export default function Flame({
 
     cycle.start();
     return () => cycle.stop();
-  }, [swell]);
+  }, [swell, still]);
+
+  const idleOpacity = swell.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] });
+  const idleScale = swell.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1.03] });
 
   return (
     <Animated.Image
@@ -58,9 +85,9 @@ export default function Flame({
         {
           width: size,
           height: size,
-          opacity: swell.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }),
+          opacity: dim === undefined ? idleOpacity : Animated.multiply(idleOpacity, dim),
           transform: [
-            { scale: swell.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1.03] }) },
+            { scale: scale === undefined ? idleScale : Animated.multiply(idleScale, scale) },
           ],
         },
         style,

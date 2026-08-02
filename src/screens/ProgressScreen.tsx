@@ -4,8 +4,10 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Screen from '../components/Screen';
 import Icon, { IconName } from '../components/Icon';
+import WeekStrip from '../components/WeekStrip';
 import { theme, space, radius } from '../theme';
-import { lastNights, nightDate, nightOf, addDays } from '../streak';
+import { formatTotal } from '../format';
+import { nightDate, nightOf, addDays } from '../streak';
 import { loadProgress, markBadgesSeen, emptyProgress } from '../sessions';
 import type { LoggedSession, Progress } from '../sessions';
 import type { BadgeState } from '../achievements';
@@ -17,15 +19,6 @@ const KIND_ICONS: Record<string, IconName> = {
   meditation: 'breathe',
   reading: 'reading',
 };
-
-const WEEK_LENGTH = 7;
-
-function formatTotal(minutes: number): string {
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
-}
 
 function formatLength(seconds: number): string {
   return seconds >= 60 ? `${Math.round(seconds / 60)}m` : `${seconds}s`;
@@ -47,29 +40,6 @@ function groupByNight(history: LoggedSession[]): { night: string; sessions: Logg
     else groups.push({ night, sessions: [session] });
   }
   return groups;
-}
-
-function WeekStrip({ nights }: { nights: Set<string> }) {
-  const keys = lastNights(WEEK_LENGTH);
-  const tonight = keys[keys.length - 1];
-
-  return (
-    <View style={styles.week}>
-      {keys.map((key) => {
-        const done = nights.has(key);
-        return (
-          <View key={key} style={styles.weekDay}>
-            <View style={[styles.dot, done && styles.dotDone, key === tonight && styles.dotTonight]}>
-              {done && <Icon name="check" size={13} color={theme.bg} />}
-            </View>
-            <Text style={[styles.weekLabel, done && styles.weekLabelDone]}>
-              {nightDate(key).toLocaleDateString([], { weekday: 'narrow' })}
-            </Text>
-          </View>
-        );
-      })}
-    </View>
-  );
 }
 
 function Stat({ value, label }: { value: string; label: string }) {
@@ -172,7 +142,9 @@ export default function ProgressScreen() {
             </Text>
           </>
         )}
-        <WeekStrip nights={nights} />
+        <View style={styles.week}>
+          <WeekStrip nights={nights} />
+        </View>
       </View>
 
       <View style={styles.statRow}>
@@ -256,41 +228,8 @@ const styles = StyleSheet.create({
     marginTop: -space.xs,
   },
   week: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignSelf: 'stretch',
     marginTop: space.lg,
-  },
-  weekDay: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  dot: {
-    width: 26,
-    height: 26,
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.cardBorder,
-    backgroundColor: theme.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dotDone: {
-    backgroundColor: theme.ember,
-    borderColor: theme.ember,
-  },
-  dotTonight: {
-    borderWidth: 1.5,
-    borderColor: theme.ember,
-  },
-  weekLabel: {
-    color: theme.textFaint,
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: space.xs + 2,
-  },
-  weekLabelDone: {
-    color: theme.textDim,
   },
   statRow: {
     flexDirection: 'row',

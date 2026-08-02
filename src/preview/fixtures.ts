@@ -1,4 +1,5 @@
 import type { LoggedSession } from '../sessions';
+import type { RoutineSettings } from '../storage';
 import type { RoutinePlan } from '../routineData';
 import { BUILTIN_ROUTINE_ID, stepCatalog } from '../routineData';
 import type { SessionKind } from '../database.types';
@@ -106,6 +107,27 @@ const savedRoutines: RoutinePlan[] = [
     updatedAt: new Date().toISOString(),
   },
 ];
+
+/**
+ * Reminder times, quoted as minutes from now for the same reason the sessions
+ * are: Tonight's whole hero is an interpolation on how long is left, and a fixed
+ * clock time would show the wick freshly lit for twenty-two hours of the day.
+ */
+function reminderIn(minutes: number): RoutineSettings {
+  const at = new Date(Date.now() + minutes * 60 * 1000);
+  return { hour: at.getHours(), minute: at.getMinutes(), enabled: true };
+}
+
+export const SETTINGS_FIXTURES: Record<string, RoutineSettings> = {
+  // Nothing set yet: the countdown reads "Anytime" and the burn bar is absent.
+  empty: { hour: 21, minute: 30, enabled: false },
+  // Freshly lit — the flame at full size, before the evening has taken any of it.
+  starting: reminderIn(96),
+  // Mid-evening, which is the state the design was drawn against.
+  steady: reminderIn(48),
+  // Burned out, so the veil is at full strength and the CTA reads "Start anyway".
+  veteran: reminderIn(0),
+};
 
 /** Keyed by the same fixture names, so one `--fixture` drives every screen. */
 export const ROUTINE_FIXTURES: Record<string, { routines: RoutinePlan[]; activeId: string }> = {

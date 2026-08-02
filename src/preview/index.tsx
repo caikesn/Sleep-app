@@ -7,6 +7,7 @@ import { theme } from '../theme';
 import TonightScreen from '../screens/TonightScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import ModulesScreen from '../screens/ModulesScreen';
 import RoutinesScreen from '../screens/RoutinesScreen';
 import RoutineBuilderScreen from '../screens/RoutineBuilderScreen';
 import StretchLibraryScreen from '../screens/StretchLibraryScreen';
@@ -14,7 +15,7 @@ import MeditationScreen from '../screens/MeditationScreen';
 import AuthScreen from '../screens/AuthScreen';
 import RedLightTutorialScreen from '../screens/RedLightTutorialScreen';
 import { AuthProvider } from '../lib/AuthContext';
-import { FIXTURES, ROUTINE_FIXTURES, EDITABLE_ROUTINE_ID } from './fixtures';
+import { FIXTURES, ROUTINE_FIXTURES, SETTINGS_FIXTURES, EDITABLE_ROUTINE_ID } from './fixtures';
 
 /**
  * A development-only harness for looking at one screen in a chosen state.
@@ -40,6 +41,7 @@ const SCREENS: Record<
 > = {
   progress: { component: ProgressScreen },
   tonight: { component: TonightScreen },
+  modules: { component: ModulesScreen },
   settings: { component: SettingsScreen },
   routines: { component: RoutinesScreen },
   stretches: { component: StretchLibraryScreen },
@@ -93,9 +95,11 @@ export default function Preview({ request }: { request: PreviewRequest }) {
   useEffect(() => {
     const rows = FIXTURES[request.fixture] ?? FIXTURES.steady;
     const routines = ROUTINE_FIXTURES[request.fixture] ?? ROUTINE_FIXTURES.steady;
+    const settings = SETTINGS_FIXTURES[request.fixture] ?? SETTINGS_FIXTURES.steady;
     // Badges are left unseen on purpose — the NEW treatment is one of the
     // things worth looking at.
     AsyncStorage.multiSet([
+      ['profile_cache_v1', JSON.stringify(settings)],
       ['session_log_v1', JSON.stringify(rows)],
       ['session_queue_v1', '[]'],
       ['seen_badges_v1', '[]'],

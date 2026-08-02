@@ -1,4 +1,5 @@
-import { Easing } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing } from 'react-native';
 
 /**
  * Motion for an app used in the dark, half an hour before sleep.
@@ -45,6 +46,43 @@ export const easing = {
   /** Going down under the finger. Linear-ish; there is nothing to decelerate. */
   press: Easing.out(Easing.quad),
 };
+
+/**
+ * A value that drifts 0 → 1 → 0 forever, for something that idles: a breathing
+ * bloom, a swaying cast light, a glow behind a card.
+ *
+ * Alternating rather than resetting, so there is no seam where the animation
+ * snaps back to its start — the turn at each end is as soft as the middle,
+ * which is the whole reason `easing.breathe` exists.
+ *
+ * `still` parks it at the mid point for reduced motion. That holds the element
+ * at its average brightness and size instead of removing it, so the layout and
+ * the lighting are the same either way and only the movement goes.
+ */
+export function useAmbientLoop(halfCycleMs: number, still?: boolean): Animated.Value {
+  const value = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (still) {
+      value.setValue(0.5);
+      return;
+    }
+
+    const leg = (to: number) =>
+      Animated.timing(value, {
+        toValue: to,
+        duration: halfCycleMs,
+        easing: easing.breathe,
+        useNativeDriver: true,
+      });
+
+    const cycle = Animated.loop(Animated.sequence([leg(1), leg(0)]));
+    cycle.start();
+    return () => cycle.stop();
+  }, [value, halfCycleMs, still]);
+
+  return value;
+}
 
 /** How far a pressed control shrinks. Small — this is felt, not watched. */
 export const PRESS_SCALE = 0.97;

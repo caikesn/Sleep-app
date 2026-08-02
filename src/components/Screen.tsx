@@ -24,13 +24,34 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   /** Pinned to the bottom, outside the scroll area — for a primary CTA. */
   footer?: React.ReactNode;
+  /** Overrides the screen ground. Defaults to `gradients.screen`. */
+  ground?: readonly [string, string, ...string[]];
+  /** Where each `ground` colour lands, 0–1. */
+  groundStops?: readonly [number, number, ...number[]];
+  /**
+   * Full-bleed decoration drawn between the ground and the content — glows,
+   * veils, drifting embers. Ignores the horizontal padding, never takes a
+   * touch, and deliberately sits outside the entrance animation with the
+   * gradient, so moving between tabs reads as the light staying on.
+   */
+  background?: React.ReactNode;
 };
 
 /**
  * Every screen's outer shell: warm background, safe-area top inset and an
  * optional header. Keeps padding and header treatment identical everywhere.
  */
-export default function Screen({ children, title, action, scroll, style, footer }: Props) {
+export default function Screen({
+  children,
+  title,
+  action,
+  scroll,
+  style,
+  footer,
+  ground = gradients.screen,
+  groundStops,
+  background,
+}: Props) {
   const insets = useSafeAreaInsets();
   const Body = scroll ? ScrollView : View;
 
@@ -62,35 +83,46 @@ export default function Screen({ children, title, action, scroll, style, footer 
   };
 
   return (
-    <LinearGradient
-      colors={gradients.screen}
-      style={[styles.root, { paddingTop: insets.top + space.md }, style]}
-    >
-      {(title || action) && (
-        <Animated.View style={[styles.header, arriving]}>
-          {title ? <Text style={styles.title}>{title}</Text> : <View />}
-          {action && (
-            <Pressable onPress={action.onPress} style={styles.action} hitSlop={8}>
-              <Text style={styles.actionText}>{action.label}</Text>
-            </Pressable>
-          )}
-        </Animated.View>
+    <LinearGradient colors={ground} locations={groundStops} style={styles.root}>
+      {/* Outside the padded column, so a glow can run to the screen edge — and
+          the safe-area inset lives on `content`, not here, which keeps
+          absolutely positioned decoration measured from the true top edge
+          rather than from wherever the notch happens to end. */}
+      {background && (
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+          {background}
+        </View>
       )}
-      <Animated.View style={[styles.fill, arriving]}>
-        <Body
-          style={scroll ? undefined : styles.body}
-          contentContainerStyle={scroll ? styles.scrollBody : undefined}
-        >
-          {children}
-        </Body>
-      </Animated.View>
-      {footer && <Animated.View style={[styles.footer, arriving]}>{footer}</Animated.View>}
+      <View style={[styles.content, { paddingTop: insets.top + space.md }, style]}>
+        {(title || action) && (
+          <Animated.View style={[styles.header, arriving]}>
+            {title ? <Text style={styles.title}>{title}</Text> : <View />}
+            {action && (
+              <Pressable onPress={action.onPress} style={styles.action} hitSlop={8}>
+                <Text style={styles.actionText}>{action.label}</Text>
+              </Pressable>
+            )}
+          </Animated.View>
+        )}
+        <Animated.View style={[styles.fill, arriving]}>
+          <Body
+            style={scroll ? undefined : styles.body}
+            contentContainerStyle={scroll ? styles.scrollBody : undefined}
+          >
+            {children}
+          </Body>
+        </Animated.View>
+        {footer && <Animated.View style={[styles.footer, arriving]}>{footer}</Animated.View>}
+      </View>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
+    flex: 1,
+  },
+  content: {
     flex: 1,
   },
   /**
