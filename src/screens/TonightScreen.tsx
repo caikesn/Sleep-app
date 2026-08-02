@@ -37,7 +37,10 @@ import type { TabScreenNavigation } from '../navigation';
  * looked at without noticing how much of the evening is gone.
  */
 
-/** How long before the reminder the wick is lit. */
+/**
+ * How long before the reminder the wick is lit — the window the burn is drawn
+ * across, not a cap on the countdown. The clock keeps honest time outside it.
+ */
 const EVENING_MINUTES = 96;
 
 /** A burn value never jumps in normal use; this is for reopening the app. */
@@ -111,9 +114,15 @@ function formatTime(hour: number, minute: number): string {
 /**
  * How far the evening has burned, and the minutes still on the clock.
  *
- * Clamped at both ends rather than allowed to run negative: at nine in the
- * morning the wick is simply not lit yet, and an hour after the reminder it is
- * as out as it is ever going to get.
+ * The two are clamped differently on purpose. `burn` only has meaning inside
+ * the evening's window, so it holds at 0 all afternoon and at 1 once the
+ * reminder has passed — at nine in the morning the wick is simply not lit yet,
+ * and an hour after the reminder it is as out as it is ever going to get.
+ * `minutes` is the real time left, however far off that is: capping it at the
+ * window meant a reminder six hours away read "96 min", which is just wrong.
+ *
+ * `null` minutes means there is no wind-down tonight at all — no reminder, one
+ * that is switched off, or one set for nights that are not this one.
  *
  * `fireAtOn` rather than the next firing, because a reminder set for weeknights
  * only should leave Saturday unlit — and because once tonight's has passed, the
@@ -122,12 +131,25 @@ function formatTime(hour: number, minute: number): string {
 function burnedDown(
   reminder: Reminder | null,
   now: Date = new Date()
-): { burn: number; minutes: number } {
+): { burn: number; minutes: number | null } {
   const at = reminder ? fireAtOn(reminder, now) : null;
-  if (!at) return { burn: 0, minutes: EVENING_MINUTES };
+  if (!at) return { burn: 0, minutes: null };
 
-  const left = Math.min(EVENING_MINUTES, Math.max(0, (at.getTime() - now.getTime()) / 60_000));
-  return { burn: 1 - left / EVENING_MINUTES, minutes: Math.round(left) };
+  const left = Math.max(0, (at.getTime() - now.getTime()) / 60_000);
+  return { burn: 1 - Math.min(EVENING_MINUTES, left) / EVENING_MINUTES, minutes: Math.round(left) };
+}
+
+/**
+ * The countdown as the hero says it out loud: `40 min`, `2h`, `5h 20m`.
+ *
+ * Hours as soon as there is one, because "312 min" is a number you have to do
+ * arithmetic on before it tells you anything about your evening.
+ */
+function formatLeft(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
 }
 
 /** Down the descent, each step is a little further from the light. */
@@ -191,7 +213,10 @@ export default function TonightScreen() {
   }, [reminder]);
 
   const { burn, minutes } = clock;
-  const lit = reminder?.enabled === true;
+  /** A wind-down that actually lands tonight — see `burnedDown`. */
+  const lit = reminder !== null && minutes !== null;
+  /** Set, but not for tonight: a different sentence from having none at all. */
+  const offNight = !lit && reminder?.enabled === true;
 
   /**
    * The whole design, as one driven value. Every layer below interpolates off
@@ -375,11 +400,13 @@ export default function TonightScreen() {
 
       <View style={styles.countdown}>
         <Text style={styles.countdownValue}>
-          {!lit ? 'Anytime' : minutes > 0 ? `${minutes} min` : 'Now'}
+          {!lit ? 'Anytime' : minutes > 0 ? formatLeft(minutes) : 'Now'}
         </Text>
         <Text style={styles.countdownCaption}>
           {!lit
-            ? "no reminder set — start whenever you're ready"
+            ? offNight
+              ? "no wind-down tonight — start whenever you're ready"
+              : "no reminder set — start whenever you're ready"
             : minutes > 0
               ? `until wind-down at ${formatTime(reminder.hour, reminder.minute)}`
               : 'the wick is out — go to bed'}
@@ -742,6 +769,9 @@ const styles = StyleSheet.create({
     // page. Everything above it keeps its natural height.
     marginTop: 'auto',
     paddingTop: 14,
+    // The tab bar butts straight up against the body, so the strip has to hold
+    // itself off it — without this the day letters sit on the bar's top rule.
+    paddingBottom: space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: theme.cardBorder,
   },
