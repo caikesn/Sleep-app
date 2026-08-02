@@ -406,7 +406,12 @@ function SetupStage({
 
         <Text style={styles.sectionLabel}>SOUND</Text>
         <PillRow
-          options={[{ id: SOUND_OFF, name: 'Off' }, ...SOUNDSCAPES]}
+          // "Silence", not "Off". BELLS directly above already has an "Off"
+          // pill, and two identically-labelled pills under two headings is the
+          // kind of thing that is fine in daylight and wrong at 11pm. This row
+          // wraps to two lines regardless, so the longer word costs nothing —
+          // the bells row is a single tight line and could not have taken it.
+          options={[{ id: SOUND_OFF, name: 'Silence' }, ...SOUNDSCAPES]}
           value={soundId}
           onChange={chooseSound}
         />

@@ -1,8 +1,18 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, StyleProp, ViewStyle } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  Animated,
+  StyleProp,
+  ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme, space, type, gradients } from '../theme';
+import { duration, easing, ENTER_RISE } from '../motion';
 
 type Props = {
   children: React.ReactNode;
@@ -24,34 +34,72 @@ export default function Screen({ children, title, action, scroll, style, footer 
   const insets = useSafeAreaInsets();
   const Body = scroll ? ScrollView : View;
 
+  /**
+   * Content fades up as the screen mounts. It is one animation defined once,
+   * which is the reason it lives here rather than in each screen: the gradient
+   * ground stays put and only what sits on it arrives, so moving between tabs
+   * reads as the light staying on while the contents change.
+   *
+   * The gradient is deliberately outside it. Fading the background too would
+   * flash the app's near-black against whatever is behind it on every mount.
+   */
+  const enter = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: duration.enter,
+      easing: easing.settle,
+      useNativeDriver: true,
+    }).start();
+  }, [enter]);
+
+  const arriving = {
+    opacity: enter,
+    transform: [
+      { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [ENTER_RISE, 0] }) },
+    ],
+  };
+
   return (
     <LinearGradient
       colors={gradients.screen}
       style={[styles.root, { paddingTop: insets.top + space.md }, style]}
     >
       {(title || action) && (
-        <View style={styles.header}>
+        <Animated.View style={[styles.header, arriving]}>
           {title ? <Text style={styles.title}>{title}</Text> : <View />}
           {action && (
             <Pressable onPress={action.onPress} style={styles.action} hitSlop={8}>
               <Text style={styles.actionText}>{action.label}</Text>
             </Pressable>
           )}
-        </View>
+        </Animated.View>
       )}
-      <Body
-        style={scroll ? undefined : styles.body}
-        contentContainerStyle={scroll ? styles.scrollBody : undefined}
-      >
-        {children}
-      </Body>
-      {footer && <View style={styles.footer}>{footer}</View>}
+      <Animated.View style={[styles.fill, arriving]}>
+        <Body
+          style={scroll ? undefined : styles.body}
+          contentContainerStyle={scroll ? styles.scrollBody : undefined}
+        >
+          {children}
+        </Body>
+      </Animated.View>
+      {footer && <Animated.View style={[styles.footer, arriving]}>{footer}</Animated.View>}
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
+    flex: 1,
+  },
+  /**
+   * The wrapper the body's entrance animation is applied to. It has to carry
+   * `flex: 1` itself — an Animated.View inserted between the gradient and a
+   * scrolling body would otherwise collapse to its content height and the
+   * screen would stop scrolling.
+   */
+  fill: {
     flex: 1,
   },
   header: {

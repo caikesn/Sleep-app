@@ -11,6 +11,9 @@ import RoutinesScreen from '../screens/RoutinesScreen';
 import RoutineBuilderScreen from '../screens/RoutineBuilderScreen';
 import StretchLibraryScreen from '../screens/StretchLibraryScreen';
 import MeditationScreen from '../screens/MeditationScreen';
+import AuthScreen from '../screens/AuthScreen';
+import RedLightTutorialScreen from '../screens/RedLightTutorialScreen';
+import { AuthProvider } from '../lib/AuthContext';
 import { FIXTURES, ROUTINE_FIXTURES, EDITABLE_ROUTINE_ID } from './fixtures';
 
 /**
@@ -31,7 +34,10 @@ import { FIXTURES, ROUTINE_FIXTURES, EDITABLE_ROUTINE_ID } from './fixtures';
  * `params` seeds the screen's route params, which is the only way to reach a
  * state that normally arrives by navigation — editing an existing routine, say.
  */
-const SCREENS: Record<string, { component: React.ComponentType<any>; params?: object }> = {
+const SCREENS: Record<
+  string,
+  { component: React.ComponentType<any>; params?: object; needsAuth?: boolean }
+> = {
   progress: { component: ProgressScreen },
   tonight: { component: TonightScreen },
   settings: { component: SettingsScreen },
@@ -43,6 +49,17 @@ const SCREENS: Record<string, { component: React.ComponentType<any>; params?: ob
     component: RoutineBuilderScreen,
     params: { routineId: EDITABLE_ROUTINE_ID },
   },
+  /**
+   * The sign-in screen is the one screen the harness could not previously
+   * reach, because avoiding auth is the whole point of it — which left the
+   * app's first impression as the only thing nobody could look at. It is the
+   * single screen that genuinely needs the provider, so it asks for it.
+   *
+   * `getSession()` reads local storage and resolves to null here; no session is
+   * seeded, nothing is signed in, and no credentials are ever submitted.
+   */
+  auth: { component: AuthScreen, needsAuth: true },
+  redlight: { component: RedLightTutorialScreen },
 };
 
 type ScreenName = string;
@@ -93,13 +110,15 @@ export default function Preview({ request }: { request: PreviewRequest }) {
   // then jump, which is exactly the frame a screenshot would catch.
   if (!ready) return null;
 
-  const { component, params } = SCREENS[request.screen];
+  const { component, params, needsAuth } = SCREENS[request.screen];
 
-  return (
+  const tree = (
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Preview" component={component} initialParams={params} />
       </Stack.Navigator>
     </NavigationContainer>
   );
+
+  return needsAuth ? <AuthProvider>{tree}</AuthProvider> : tree;
 }

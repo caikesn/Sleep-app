@@ -16,6 +16,7 @@ import { theme, space, gradients } from '../theme';
 import { useAuth } from '../lib/AuthContext';
 import Button from '../components/Button';
 import Field from '../components/Field';
+import Flame from '../components/Flame';
 import type { RootStackParamList } from '../navigation';
 
 type Mode = 'signIn' | 'signUp';
@@ -70,7 +71,8 @@ export default function AuthScreen() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + space.xxl }]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.eyebrow}>NIGHT ROUTINE</Text>
+        <Flame size={88} style={styles.flame} />
+        <Text style={styles.eyebrow}>WICK</Text>
         <Text style={styles.title}>{mode === 'signIn' ? 'Welcome back' : 'Create an account'}</Text>
         <Text style={styles.subtitle}>
           {mode === 'signIn'
@@ -144,6 +146,13 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: space.lg,
     paddingBottom: space.xl,
+  },
+  // Pulled left of the text's optical edge: the asset is square but the flame
+  // inside it is not, so aligning the file's box to the margin leaves the mark
+  // itself looking indented against the wordmark below.
+  flame: {
+    marginLeft: -space.lg,
+    marginBottom: space.xs,
   },
   eyebrow: {
     color: theme.ember,

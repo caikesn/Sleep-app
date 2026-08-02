@@ -1,6 +1,22 @@
-import React from 'react';
-import { Text, StyleSheet, Pressable, ActivityIndicator, StyleProp, ViewStyle } from 'react-native';
+import React, { useRef } from 'react';
+import {
+  Text,
+  StyleSheet,
+  Pressable,
+  ActivityIndicator,
+  Animated,
+  StyleProp,
+  ViewStyle,
+} from 'react-native';
 import { theme, space, radius } from '../theme';
+import { duration, easing, PRESS_SCALE } from '../motion';
+
+/**
+ * Animating the Pressable itself rather than wrapping it in an Animated.View.
+ * A wrapper would take over the caller's `style`, which across the app carries
+ * layout — flex, margins — and quietly moves where that layout applies.
+ */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /**
  * The one button in the app. Screens were each hand-rolling their own filled
@@ -36,27 +52,59 @@ export default function Button({
 }: Props) {
   const inert = disabled || busy;
 
+  /**
+   * 0 at rest, 1 held down. Both the shrink and the dim read off this one
+   * value, which is also why neither is expressed as a `pressed` style any
+   * more: an animated component drops a **function** style prop entirely
+   * rather than calling it, so `style={({ pressed }) => [...]}` silently left
+   * this button with no styling at all — no fill, no radius, no centring.
+   */
+  const held = useRef(new Animated.Value(0)).current;
+
+  function press(to: number, ms: number, curve: typeof easing.press) {
+    Animated.timing(held, {
+      toValue: to,
+      duration: ms,
+      easing: curve,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  // A disabled button has a fixed look and never animates, so it keeps its
+  // plain style. Layering an animated opacity over `styles.disabled` would
+  // override the 0.4 with this value's resting 1 and undim it.
+  const feedback = inert
+    ? null
+    : {
+        opacity: held.interpolate({ inputRange: [0, 1], outputRange: [1, 0.85] }),
+        transform: [
+          { scale: held.interpolate({ inputRange: [0, 1], outputRange: [1, PRESS_SCALE] }) },
+        ],
+      };
+
   // A disabled primary drops its fill rather than fading it. Near-black text on
   // ember at 40% opacity is near-black on near-black — the label vanished
   // completely on the routine builder's empty state.
   const muted = variant === 'primary' && !!disabled && !busy;
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
+      onPressIn={() => !inert && press(1, duration.press, easing.press)}
+      onPressOut={() => !inert && press(0, duration.release, easing.settle)}
       disabled={inert}
       accessibilityRole="button"
       accessibilityLabel={meta ? `${label}, ${meta}` : label}
       accessibilityState={{ disabled: !!inert }}
-      style={({ pressed }) => [
+      style={[
         styles.base,
         variant === 'primary' && styles.primary,
         variant === 'outline' && styles.outline,
         variant === 'quiet' && styles.quiet,
-        pressed && !inert && styles.pressed,
         inert && !muted && styles.disabled,
         muted && styles.primaryDisabled,
         style,
+        feedback,
       ]}
     >
       {busy ? (
@@ -88,7 +136,7 @@ export default function Button({
           )}
         </>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -114,9 +162,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.card,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.cardBorder,
-  },
-  pressed: {
-    opacity: 0.85,
   },
   disabled: {
     opacity: 0.4,
