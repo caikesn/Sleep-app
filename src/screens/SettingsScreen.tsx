@@ -110,7 +110,7 @@ export default function SettingsScreen() {
       <Pressable style={styles.linkRow} onPress={() => navigation.navigate('RedLightTutorial')}>
         <View style={styles.linkText}>
           <Text style={styles.rowLabel}>Setting up red light</Text>
-          <Text style={styles.caption}>Real bulbs, Night Shift and Night Light</Text>
+          <Text style={styles.caption}>Real bulbs, and a red filter for your screen</Text>
         </View>
         <Icon name="chevron" size={18} color={theme.ember} />
       </Pressable>
