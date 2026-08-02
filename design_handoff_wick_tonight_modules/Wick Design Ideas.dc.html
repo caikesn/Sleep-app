@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.2/dist/feather.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0e0b08;font-family:-apple-system,system-ui,"Segoe UI",sans-serif}
+a{color:#ff9d5c}a:hover{color:#ffb782}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(255,255,255,.07);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#ff9d5c;color:#1a0f08;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#f7ede2}
+.dv-sub{font:700 10px/1 ui-monospace,Menlo,monospace;letter-spacing:1.4px;color:#6b5c4e;margin:26px 0 14px}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(255,157,92,.14);color:#ff9d5c;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:#a89482;max-width:402px}
+.dv-opt:target .dv-oid{background:#ff9d5c;color:#1a0f08}
+.dv-next{margin:26px 0 0;font:12px/1.6 system-ui,sans-serif;color:#6b5c4e}
+@keyframes wickBreathe{0%{opacity:.45;transform:scale(.94)}100%{opacity:1;transform:scale(1.06)}}
+@keyframes wickBreatheSoft{0%{opacity:.25;transform:scale(.97)}100%{opacity:.7;transform:scale(1.04)}}
+@keyframes wickDrift{0%{opacity:0;transform:translateY(0) scale(.8)}18%{opacity:.85}100%{opacity:0;transform:translateY(-190px) scale(1.15)}}
+@keyframes wickSweep{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}
+@keyframes wickPulseRing{0%{opacity:.5;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
+@keyframes wickFlicker{0%{opacity:.55}100%{opacity:1}}
+@keyframes wickFill{0%{width:0}100%{width:var(--w,60%)}}
+@keyframes wickSway{0%{transform:translateX(-10px) skewX(5deg) scaleY(.95)}100%{transform:translateX(11px) skewX(-6deg) scaleY(1.06)}}
+@keyframes wickShaft{0%{transform:rotate(-2.2deg) scaleY(.97);opacity:.62}100%{transform:rotate(2.6deg) scaleY(1.04);opacity:1}}
+@keyframes wickDriftShort{0%{opacity:0;transform:translateY(0) scale(.7)}22%{opacity:.9}100%{opacity:0;transform:translateY(-150px) scale(1.1)}}
+@keyframes wickArcs{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.13);opacity:.85}}
+.dv-scrub{-webkit-appearance:none;appearance:none;width:100%;height:2px;border-radius:999px;background:#2e241c;outline:none;accent-color:#ff9d5c}
+.dv-scrub::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#ff9d5c;cursor:grab;box-shadow:0 0 0 5px rgba(255,157,92,.16)}
+.dv-scrub::-moz-range-thumb{width:15px;height:15px;border:0;border-radius:50%;background:#ff9d5c;cursor:grab}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">The wick, burning down · four backgrounds for the promoted module</span></div>
+
+<p class="dv-sub">TONIGHT — FROM <a class="dv-oid" href="#1c">1c</a></p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a><span>The wick burns down through the evening — the flame starts tall and bright and shrinks and dims as the night goes on, casting light that sways down the screen like a shadow. Week strip closes the page. <b style="color:#ff9d5c">Drag the scrubber under the phone to run the evening forward.</b></span></div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#241a10,#14100c 55%);overflow:hidden">
+  <div style="position:absolute;inset:0;background:#0d0a07;opacity:{{ nightVeil }};transition:opacity .5s cubic-bezier(.33,1,.68,1);pointer-events:none"></div>
+  <div style="position:absolute;top:{{ bloomTop }};left:50%;margin-left:{{ bloomOffset }};width:{{ bloomSize }};height:{{ bloomSize }};border-radius:50%;background:radial-gradient(circle,rgba(255,157,92,{{ bloom }}),rgba(255,157,92,0) 56%);animation:wickBreathe 4.6s ease-in-out infinite alternate;transition:top .5s cubic-bezier(.33,1,.68,1),width .5s cubic-bezier(.33,1,.68,1),height .5s cubic-bezier(.33,1,.68,1),margin-left .5s cubic-bezier(.33,1,.68,1),background .5s ease;pointer-events:none"></div>
+  <div style="position:absolute;top:{{ castTop }};left:50%;margin-left:-150px;width:300px;height:140px;transform-origin:50% 0%;animation:wickSway 7.4s ease-in-out infinite alternate;transition:top .5s cubic-bezier(.33,1,.68,1);pointer-events:none">
+    <div style="width:100%;height:100%;background:radial-gradient(ellipse at 50% 0%,rgba(255,157,92,{{ castLight }}),rgba(255,157,92,0) 68%);filter:blur(11px);transition:background .5s ease"></div>
+  </div>
+  <div style="position:absolute;top:190px;left:0;right:0;height:230px;pointer-events:none;opacity:{{ emberOpacity }};transition:opacity .5s ease">
+    <sc-for list="{{ embers }}" as="e" hint-placeholder-count="6">
+      <span style="position:absolute;left:{{ e.x }};bottom:0;width:{{ e.s }};height:{{ e.s }};border-radius:50%;background:#ff9d5c;filter:blur(.4px);animation:wickDrift {{ e.dur }} linear infinite;animation-delay:{{ e.delay }}"></span>
+    </sc-for>
+  </div>
+
+  <div style="position:relative;flex:1;padding:62px 24px 8px;overflow:hidden;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span style="color:#ff9d5c;font-size:11px;font-weight:700;letter-spacing:2px">TONIGHT</span>
+      <span style="color:#a89482;font-size:12px;font-weight:600">night 12</span>
+    </div>
+
+    <div style="position:relative;flex:none;height:{{ heroBox }};transition:height .5s cubic-bezier(.33,1,.68,1)">
+      <img src="assets/splash-icon.png" alt="" style="position:absolute;left:0;right:0;bottom:-14px;margin:0 auto;width:{{ flameSize }};height:{{ flameSize }};object-fit:contain;opacity:{{ flameOpacity }};transition:width .5s cubic-bezier(.33,1,.68,1),height .5s cubic-bezier(.33,1,.68,1),opacity .5s ease;animation:wickBreathe 4.6s ease-in-out infinite alternate">
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;margin-top:10px">
+      <div style="color:#f7ede2;font-size:44px;font-weight:200;letter-spacing:-1px;line-height:1.1">{{ countdown }}</div>
+      <div style="color:#a89482;font-size:14px;margin-top:2px">{{ countdownCaption }}</div>
+      <div style="width:170px;height:3px;border-radius:999px;background:#2e241c;margin-top:18px;overflow:hidden"><div style="height:3px;border-radius:999px;background:linear-gradient(90deg,#e8703a,#ff9d5c);width:{{ burnedPct }};transition:width .5s cubic-bezier(.33,1,.68,1)"></div></div>
+      <div style="color:#6b5c4e;font-size:11px;font-weight:600;letter-spacing:1.2px;margin-top:8px">{{ burnedLabel }}</div>
+    </div>
+
+    <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:8px;background:#e8703a;border-radius:999px;min-height:54px;padding:16px 24px;margin-top:18px">
+      <div style="position:absolute;inset:0;border-radius:999px;border:1px solid rgba(255,157,92,.6);animation:wickPulseRing 3.4s ease-out infinite"></div>
+      <span style="color:#1a0f08;font-size:16px;font-weight:700">{{ ctaWick }}</span>
+      <span style="color:rgba(26,15,8,.7);font-size:13px;font-weight:600">· 9 min</span>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:22px 0 8px">
+      <span style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px">THE DESCENT</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="color:#ff9d5c;font-size:13px;font-weight:600">Night Routine</span><i data-feather="chevron-right" style="width:14px;height:14px;color:#ff9d5c"></i></span>
+    </div>
+    <div style="position:relative;padding-left:34px">
+      <div style="position:absolute;left:9px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,#ff9d5c,rgba(255,157,92,.35) 40%,rgba(255,157,92,.05))"></div>
+      <sc-for list="{{ descent4 }}" as="s" hint-placeholder-count="4">
+        <div style="position:relative;display:flex;align-items:baseline;gap:10px;padding:6px 0">
+          <div style="position:absolute;left:-29px;top:10px;width:8px;height:8px;border-radius:50%;background:{{ s.dot }};box-shadow:0 0 0 3px #14100c"></div>
+          <span style="flex:1;color:{{ s.color }};font-size:15px">{{ s.name }}</span>
+          <span style="color:#6b5c4e;font-size:12px;font-variant-numeric:tabular-nums">{{ s.time }}</span>
+        </div>
+      </sc-for>
+      <div style="color:#6b5c4e;font-size:12px;font-weight:600;padding:6px 0">+ 4 more</div>
+    </div>
+
+    <div style="margin-top:auto;padding-top:14px;border-top:1px solid #2e241c">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+        <span style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px">THIS WEEK</span>
+        <span style="color:#a89482;font-size:12px;font-weight:600">6 of 7 nights lit</span>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <sc-for list="{{ week }}" as="d" hint-placeholder-count="7">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="width:26px;height:26px;border-radius:999px;border:1px solid {{ d.border }};background:{{ d.bg }};display:flex;align-items:center;justify-content:center;color:{{ d.tick }};font-size:11px;font-weight:700">{{ d.mark }}</div>
+            <span style="font-size:11px;font-weight:600;color:#6b5c4e">{{ d.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:relative;display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+<div style="display:flex;flex-direction:column;gap:8px;width:402px;padding:14px 16px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#161210">
+  <div style="display:flex;justify-content:space-between;font:600 10px ui-monospace,Menlo,monospace;letter-spacing:1px;color:#6b5c4e"><span>EARLY EVENING</span><span style="color:#ff9d5c">{{ clockLabel }}</span><span>LIGHTS OUT</span></div>
+  <input class="dv-scrub" type="range" min="0" max="100" step="1" value="{{ burnValue }}" onInput="{{ setBurn }}">
+</div>
+</div>
+
+</div>
+
+<p class="dv-sub">MODULES — BACKGROUNDS FOR THE PROMOTED CARD (FROM <a class="dv-oid" href="#1h">1h</a>)</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Light leak — no pattern at all. Two ember blooms rising off the bottom edge at different breath rates, warm-to-black falloff. Closest to the app's own lamplight logic.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#1d1610,#14100c);overflow:hidden">
+  <div style="position:relative;flex:1;padding:62px 24px 8px;overflow:hidden">
+    <div style="margin-bottom:16px"><span style="color:#f7ede2;font-size:30px;font-weight:700">Modules</span></div>
+    <div style="position:relative;border:1px solid rgba(255,157,92,.22);border-radius:26px;overflow:hidden;background:#1f1813">
+      <div style="position:relative;height:150px;background:linear-gradient(180deg,#120e0a,#251a11);overflow:hidden">
+        <div style="position:absolute;bottom:-120px;left:8%;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(255,157,92,.42),rgba(255,157,92,0) 62%);animation:wickBreathe 5.2s ease-in-out infinite alternate"></div>
+        <div style="position:absolute;bottom:-140px;right:2%;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(232,112,58,.30),rgba(232,112,58,0) 64%);animation:wickBreatheSoft 7.6s ease-in-out infinite alternate"></div>
+        <div style="position:absolute;inset:0;pointer-events:none">
+          <sc-for list="{{ emberCard }}" as="e" hint-placeholder-count="9">
+            <span style="position:absolute;left:{{ e.x }};bottom:-4px;width:{{ e.s }};height:{{ e.s }};border-radius:50%;background:#ffb782;filter:blur(.3px);animation:wickDriftShort {{ e.dur }} linear infinite;animation-delay:{{ e.delay }}"></span>
+          </sc-for>
+        </div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,16,12,.55),rgba(20,16,12,0) 55%)"></div>
+        <div style="position:absolute;left:20px;bottom:14px;background:rgba(20,16,12,.62);border:1px solid rgba(255,157,92,.28);border-radius:999px;padding:5px 11px;color:#ff9d5c;font-size:10px;font-weight:700;letter-spacing:1.2px">TONIGHT'S PICK</div>
+      </div>
+      <div style="padding:18px 20px 20px">
+        <div style="color:#f7ede2;font-size:19px;font-weight:700">Yoga &amp; Stretches</div>
+        <div style="color:#a89482;font-size:13px;line-height:18px;margin-top:4px">Start one stretch, or pick several to run as a sequence.</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;background:#e8703a;border-radius:999px;min-height:48px;padding:13px 20px;margin-top:16px">
+          <span style="color:#1a0f08;font-size:15px;font-weight:700">Open library</span>
+          <span style="color:rgba(26,15,8,.7);font-size:12px;font-weight:600">· 30 stretches</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:14px">
+      <sc-for list="{{ pair }}" as="p" hint-placeholder-count="2">
+        <div style="flex:1;border:1px solid #2e241c;background:rgba(255,157,92,.05);border-radius:22px;padding:16px">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(255,157,92,.14);display:flex;align-items:center;justify-content:center"><i data-feather="{{ p.f }}" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+          <div style="color:#f7ede2;font-size:15px;font-weight:700;margin-top:12px">{{ p.name }}</div>
+          <div style="color:#6b5c4e;font-size:12px;line-height:17px;margin-top:3px">{{ p.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="border:1px solid #2e241c;border-radius:22px;padding:18px;margin-top:14px;background:#1f1813">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+        <span style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px">THIS WEEK</span>
+        <span style="color:#a89482;font-size:12px;font-weight:600">1h 24m wound down</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+            <div style="height:56px;display:flex;align-items:flex-end"><div style="width:16px;height:{{ b.h }};border-radius:5px;background:{{ b.bg }}"></div></div>
+            <span style="font-size:10px;font-weight:600;color:#6b5c4e;margin-top:10px">{{ b.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <div style="position:relative;display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2c">
+<div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Contour — concentric ember rings breathing outward from the button below, like heat rising off a lamp. Geometric but not a texture swatch; it points at the CTA.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#1d1610,#14100c);overflow:hidden">
+  <div style="position:relative;flex:1;padding:62px 24px 8px;overflow:hidden">
+    <div style="margin-bottom:16px"><span style="color:#f7ede2;font-size:30px;font-weight:700">Modules</span></div>
+    <div style="position:relative;border:1px solid rgba(255,157,92,.22);border-radius:26px;overflow:hidden;background:#1f1813">
+      <div style="position:relative;height:150px;background:#100c09;overflow:hidden">
+        <div style="position:absolute;bottom:-160px;left:50%;margin-left:-190px;width:380px;height:380px;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgba(255,157,92,.30) 0 1px,rgba(255,157,92,0) 1px 17px);animation:wickArcs 6.4s ease-in-out infinite alternate"></div>
+        <div style="position:absolute;bottom:-120px;left:50%;margin-left:-150px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(232,112,58,.30),rgba(232,112,58,0) 60%);animation:wickBreathe 4.6s ease-in-out infinite alternate"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,12,9,.85),rgba(16,12,9,.1) 60%)"></div>
+        <div style="position:absolute;left:20px;bottom:14px;background:rgba(20,16,12,.62);border:1px solid rgba(255,157,92,.28);border-radius:999px;padding:5px 11px;color:#ff9d5c;font-size:10px;font-weight:700;letter-spacing:1.2px">TONIGHT'S PICK</div>
+      </div>
+      <div style="padding:18px 20px 20px">
+        <div style="color:#f7ede2;font-size:19px;font-weight:700">Yoga &amp; Stretches</div>
+        <div style="color:#a89482;font-size:13px;line-height:18px;margin-top:4px">Start one stretch, or pick several to run as a sequence.</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;background:#e8703a;border-radius:999px;min-height:48px;padding:13px 20px;margin-top:16px">
+          <span style="color:#1a0f08;font-size:15px;font-weight:700">Open library</span>
+          <span style="color:rgba(26,15,8,.7);font-size:12px;font-weight:600">· 30 stretches</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:14px">
+      <sc-for list="{{ pair }}" as="p" hint-placeholder-count="2">
+        <div style="flex:1;border:1px solid #2e241c;background:rgba(255,157,92,.05);border-radius:22px;padding:16px">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(255,157,92,.14);display:flex;align-items:center;justify-content:center"><i data-feather="{{ p.f }}" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+          <div style="color:#f7ede2;font-size:15px;font-weight:700;margin-top:12px">{{ p.name }}</div>
+          <div style="color:#6b5c4e;font-size:12px;line-height:17px;margin-top:3px">{{ p.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="border:1px solid #2e241c;border-radius:22px;padding:18px;margin-top:14px;background:#1f1813">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+        <span style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px">THIS WEEK</span>
+        <span style="color:#a89482;font-size:12px;font-weight:600">1h 24m wound down</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+            <div style="height:56px;display:flex;align-items:flex-end"><div style="width:16px;height:{{ b.h }};border-radius:5px;background:{{ b.bg }}"></div></div>
+            <span style="font-size:10px;font-weight:600;color:#6b5c4e;margin-top:10px">{{ b.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <div style="position:relative;display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2d">
+<div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>The mark — your own flame asset blown up and cropped off the left edge as a watermark, with the title set into it. Zero new artwork needed.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#1d1610,#14100c);overflow:hidden">
+  <div style="position:relative;flex:1;padding:62px 24px 8px;overflow:hidden">
+    <div style="margin-bottom:16px"><span style="color:#f7ede2;font-size:30px;font-weight:700">Modules</span></div>
+    <div style="position:relative;border:1px solid rgba(255,157,92,.22);border-radius:26px;overflow:hidden;background:#1f1813">
+      <div style="position:relative;height:150px;background:linear-gradient(110deg,#2a1c11,#140f0a);overflow:hidden">
+        <img src="assets/splash-icon.png" alt="" style="position:absolute;left:-58px;top:-46px;width:250px;height:250px;object-fit:contain;opacity:.30;animation:wickBreathe 5.6s ease-in-out infinite alternate">
+        <div style="position:absolute;right:-40px;bottom:-60px;width:210px;height:210px;border-radius:50%;background:radial-gradient(circle,rgba(255,157,92,.22),rgba(255,157,92,0) 65%);animation:wickBreatheSoft 8s ease-in-out infinite alternate"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,16,12,.15),rgba(20,16,12,.8))"></div>
+        <div style="position:absolute;right:20px;top:24px;text-align:right">
+          <div style="color:#ff9d5c;font-size:10px;font-weight:700;letter-spacing:1.6px">TONIGHT'S PICK</div>
+          <div style="color:#f7ede2;font-size:24px;font-weight:700;letter-spacing:-.3px;line-height:1.15;margin-top:6px">Yoga &amp;<br>Stretches</div>
+        </div>
+      </div>
+      <div style="padding:16px 20px 20px">
+        <div style="color:#a89482;font-size:13px;line-height:18px">Start one stretch, or pick several to run as a sequence.</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;background:#e8703a;border-radius:999px;min-height:48px;padding:13px 20px;margin-top:16px">
+          <span style="color:#1a0f08;font-size:15px;font-weight:700">Open library</span>
+          <span style="color:rgba(26,15,8,.7);font-size:12px;font-weight:600">· 30 stretches</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:14px">
+      <sc-for list="{{ pair }}" as="p" hint-placeholder-count="2">
+        <div style="flex:1;border:1px solid #2e241c;background:rgba(255,157,92,.05);border-radius:22px;padding:16px">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(255,157,92,.14);display:flex;align-items:center;justify-content:center"><i data-feather="{{ p.f }}" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+          <div style="color:#f7ede2;font-size:15px;font-weight:700;margin-top:12px">{{ p.name }}</div>
+          <div style="color:#6b5c4e;font-size:12px;line-height:17px;margin-top:3px">{{ p.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="border:1px solid #2e241c;border-radius:22px;padding:18px;margin-top:14px;background:#1f1813">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+        <span style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px">THIS WEEK</span>
+        <span style="color:#a89482;font-size:12px;font-weight:600">1h 24m wound down</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+            <div style="height:56px;display:flex;align-items:flex-end"><div style="width:16px;height:{{ b.h }};border-radius:5px;background:{{ b.bg }}"></div></div>
+            <span style="font-size:10px;font-weight:600;color:#6b5c4e;margin-top:10px">{{ b.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <div style="position:relative;display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2e">
+<div class="dv-olabel"><a class="dv-oid" href="#2e">2e</a>Photo slot — a real image, treated. Warm scrim, ember rim from the right, title on the plate. This is the one to pick if you're commissioning artwork; drop the file into the marked area.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#1d1610,#14100c);overflow:hidden">
+  <div style="position:relative;flex:1;padding:62px 24px 8px;overflow:hidden">
+    <div style="margin-bottom:16px"><span style="color:#f7ede2;font-size:30px;font-weight:700">Modules</span></div>
+    <div style="position:relative;border:1px solid rgba(255,157,92,.22);border-radius:26px;overflow:hidden;background:#1f1813">
+      <div style="position:relative;height:174px;background:#0f0b08;overflow:hidden">
+        <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(115deg,rgba(168,148,130,.10) 0 1px,transparent 1px 9px)"></div>
+        <div style="position:absolute;inset:12px;border:1px dashed rgba(168,148,130,.30);border-radius:16px;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px">
+          <span style="font:600 9.5px/1.6 ui-monospace,Menlo,monospace;letter-spacing:1px;color:rgba(168,148,130,.75)">PHOTO — 402 × 174<br>RECLINED FIGURE, LAMPLIT, WARM</span>
+        </div>
+        <div style="position:absolute;top:0;right:0;bottom:0;width:60%;background:linear-gradient(270deg,rgba(255,157,92,.30),rgba(255,157,92,0));animation:wickBreatheSoft 7s ease-in-out infinite alternate"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,11,8,.2) 40%,rgba(15,11,8,.92))"></div>
+        <div style="position:absolute;left:20px;right:20px;bottom:14px">
+          <div style="color:#ff9d5c;font-size:10px;font-weight:700;letter-spacing:1.6px">TONIGHT'S PICK</div>
+          <div style="color:#f7ede2;font-size:22px;font-weight:700;letter-spacing:-.3px;margin-top:4px">Yoga &amp; Stretches</div>
+        </div>
+      </div>
+      <div style="padding:16px 20px 20px">
+        <div style="color:#a89482;font-size:13px;line-height:18px">Start one stretch, or pick several to run as a sequence.</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;background:#e8703a;border-radius:999px;min-height:48px;padding:13px 20px;margin-top:16px">
+          <span style="color:#1a0f08;font-size:15px;font-weight:700">Open library</span>
+          <span style="color:rgba(26,15,8,.7);font-size:12px;font-weight:600">· 30 stretches</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:14px">
+      <sc-for list="{{ pair }}" as="p" hint-placeholder-count="2">
+        <div style="flex:1;border:1px solid #2e241c;background:rgba(255,157,92,.05);border-radius:22px;padding:16px">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(255,157,92,.14);display:flex;align-items:center;justify-content:center"><i data-feather="{{ p.f }}" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+          <div style="color:#f7ede2;font-size:15px;font-weight:700;margin-top:12px">{{ p.name }}</div>
+          <div style="color:#6b5c4e;font-size:12px;line-height:17px;margin-top:3px">{{ p.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="border:1px solid #2e241c;border-radius:22px;padding:18px;margin-top:14px;background:#1f1813">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+        <span style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px">THIS WEEK</span>
+        <span style="color:#a89482;font-size:12px;font-weight:600">1h 24m wound down</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+            <div style="height:56px;display:flex;align-items:flex-end"><div style="width:16px;height:{{ b.h }};border-radius:5px;background:{{ b.bg }}"></div></div>
+            <span style="font-size:10px;font-weight:600;color:#6b5c4e;margin-top:10px">{{ b.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <div style="position:relative;display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+</div>
+
+<p class="dv-next">Try next: "keep <a class="dv-oid" href="#2b">2b</a>'s background but crop the mark in like <a class="dv-oid" href="#2d">2d</a>" · "make the flame in <a class="dv-oid" href="#2a">2a</a> shrink further and go deeper red at the end" · "show <a class="dv-oid" href="#2a">2a</a> as the session screen too"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Tonight &amp; Modules — recreation + three directions each</span></div>
+
+<p class="dv-sub">TONIGHT</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Current, recreated from source — the baseline everything else is measured against.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#1d1610,#14100c)">
+  <div style="flex:1;padding:62px 24px 8px;overflow:hidden">
+    <div style="padding:24px 0 32px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="color:#ff9d5c;font-size:11px;font-weight:700;letter-spacing:2px">TONIGHT</span>
+        <span style="color:#a89482;font-size:12px;font-weight:600">12 nights in a row</span>
+      </div>
+      <div style="color:#f7ede2;font-size:52px;font-weight:300;letter-spacing:-1px;line-height:1.05">10:30 PM</div>
+      <div style="color:#a89482;font-size:14px;margin-top:4px">wind-down begins</div>
+    </div>
+    <div style="display:flex;align-items:center;background:rgba(255,157,92,.07);border:1px solid rgba(255,157,92,.22);border-radius:20px;padding:16px;margin-bottom:16px">
+      <div style="width:38px;height:38px;border-radius:999px;background:rgba(255,157,92,.14);display:flex;align-items:center;justify-content:center;margin-right:16px"><i data-feather="award" style="width:20px;height:20px;color:#ff9d5c"></i></div>
+      <div style="flex:1">
+        <div style="color:#ff9d5c;font-size:10px;font-weight:700;letter-spacing:1.2px">NEW ACHIEVEMENT</div>
+        <div style="color:#f7ede2;font-size:16px;font-weight:600;margin-top:1px">Two weeks running</div>
+      </div>
+      <i data-feather="chevron-right" style="width:18px;height:18px;color:#ff9d5c"></i>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;background:#e8703a;border-radius:999px;min-height:54px;padding:16px 24px">
+      <span style="color:#1a0f08;font-size:16px;font-weight:700">Start routine</span>
+      <span style="color:rgba(26,15,8,.7);font-size:13px;font-weight:600">· 9 min</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:32px 0 8px">
+      <span style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px">WHAT'S IN IT</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="color:#ff9d5c;font-size:13px;font-weight:600">Night Routine</span><i data-feather="chevron-right" style="width:14px;height:14px;color:#ff9d5c"></i></span>
+    </div>
+    <div style="border-top:1px solid #2e241c">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="8">
+        <div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #2e241c">
+          <span style="width:28px"><i data-feather="{{ s.f }}" style="width:17px;height:17px;color:#ff9d5c"></i></span>
+          <span style="flex:1;color:#f7ede2;font-size:15px">{{ s.name }}</span>
+          <span style="color:#a89482;font-size:13px;font-variant-numeric:tabular-nums">{{ s.time }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Hearth — same hero, given atmosphere. A breathing ember bloom behind the time, the week strip pulled up from You, and a tip card closing the page.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#1d1610,#14100c);overflow:hidden">
+  <div style="position:absolute;top:-40px;left:-60px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(255,157,92,.20),rgba(255,157,92,0) 62%);animation:wickBreathe 4.6s ease-in-out infinite alternate;pointer-events:none"></div>
+  <div style="position:absolute;top:120px;right:-90px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(232,112,58,.13),rgba(232,112,58,0) 65%);animation:wickBreatheSoft 6.8s ease-in-out infinite alternate;pointer-events:none"></div>
+  <div style="position:relative;flex:1;padding:62px 24px 0;overflow:hidden">
+    <div style="padding:24px 0 26px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="color:#ff9d5c;font-size:11px;font-weight:700;letter-spacing:2px">TONIGHT</span>
+        <span style="display:flex;align-items:center;gap:6px;color:#a89482;font-size:12px;font-weight:600"><span style="width:6px;height:6px;border-radius:50%;background:#ff9d5c;animation:wickFlicker 2.3s ease-in-out infinite alternate"></span>12 nights in a row</span>
+      </div>
+      <div style="color:#f7ede2;font-size:52px;font-weight:300;letter-spacing:-1px;line-height:1.05">10:30 PM</div>
+      <div style="color:#a89482;font-size:14px;margin-top:4px">wind-down begins · 34 minutes from now</div>
+      <div style="display:flex;justify-content:space-between;margin-top:22px">
+        <sc-for list="{{ week }}" as="d" hint-placeholder-count="7">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="width:26px;height:26px;border-radius:999px;border:1px solid {{ d.border }};background:{{ d.bg }};display:flex;align-items:center;justify-content:center;color:{{ d.tick }};font-size:11px;font-weight:700">{{ d.mark }}</div>
+            <span style="font-size:11px;font-weight:600;color:#6b5c4e">{{ d.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:8px;background:#e8703a;border-radius:999px;min-height:54px;padding:16px 24px;overflow:hidden">
+      <div style="position:absolute;inset:0;width:30%;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,244,232,.30),rgba(255,255,255,0));animation:wickSweep 5.2s ease-in-out infinite"></div>
+      <span style="position:relative;color:#1a0f08;font-size:16px;font-weight:700">Start routine</span>
+      <span style="position:relative;color:rgba(26,15,8,.7);font-size:13px;font-weight:600">· 9 min</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:28px 0 8px">
+      <span style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px">WHAT'S IN IT</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="color:#ff9d5c;font-size:13px;font-weight:600">Night Routine</span><i data-feather="chevron-right" style="width:14px;height:14px;color:#ff9d5c"></i></span>
+    </div>
+    <div style="position:relative;padding-left:26px">
+      <div style="position:absolute;left:5px;top:14px;bottom:14px;width:1px;background:linear-gradient(180deg,rgba(255,157,92,.55),rgba(255,157,92,.06))"></div>
+      <sc-for list="{{ steps5 }}" as="s" hint-placeholder-count="5">
+        <div style="position:relative;display:flex;align-items:center;padding:9px 0">
+          <div style="position:absolute;left:-24px;width:11px;height:11px;border-radius:50%;background:#14100c;border:1px solid rgba(255,157,92,.45)"></div>
+          <span style="width:28px"><i data-feather="{{ s.f }}" style="width:16px;height:16px;color:#ff9d5c"></i></span>
+          <span style="flex:1;color:#f7ede2;font-size:15px">{{ s.name }}</span>
+          <span style="color:#a89482;font-size:13px;font-variant-numeric:tabular-nums">{{ s.time }}</span>
+        </div>
+      </sc-for>
+      <div style="display:flex;align-items:center;gap:6px;padding:9px 0;color:#6b5c4e;font-size:13px;font-weight:600">+ 3 more · ends 10:39 PM</div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(255,157,92,.05);border:1px solid #2e241c;border-radius:14px;padding:14px;margin-top:14px">
+      <i data-feather="sunset" style="width:16px;height:16px;color:#a89482;flex:none;margin-top:2px"></i>
+      <div>
+        <div style="color:#a89482;font-size:10px;font-weight:700;letter-spacing:1.2px;margin-bottom:3px">TONIGHT'S NOTE</div>
+        <div style="color:#a89482;font-size:13px;line-height:19px">Dim the room one lamp at a time rather than all at once — the fade is what your body reads, not the darkness.</div>
+      </div>
+    </div>
+  </div>
+  <div style="position:relative;display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="position:relative;padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>The wick — hero reworked. A candle that burns down as bedtime approaches, embers drifting off it, and the routine hanging off the flame as a vertical descent.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#241a10,#14100c 55%);overflow:hidden">
+  <div style="position:absolute;top:40px;left:50%;margin-left:-170px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(255,157,92,.16),rgba(255,157,92,0) 60%);animation:wickBreathe 4.6s ease-in-out infinite alternate;pointer-events:none"></div>
+  <div style="position:absolute;top:200px;left:0;right:0;height:220px;pointer-events:none">
+    <sc-for list="{{ embers }}" as="e" hint-placeholder-count="6">
+      <span style="position:absolute;left:{{ e.x }};bottom:0;width:{{ e.s }};height:{{ e.s }};border-radius:50%;background:#ff9d5c;filter:blur(.4px);animation:wickDrift {{ e.dur }} linear infinite;animation-delay:{{ e.delay }}"></span>
+    </sc-for>
+  </div>
+  <div style="position:relative;flex:1;padding:62px 24px 0;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span style="color:#ff9d5c;font-size:11px;font-weight:700;letter-spacing:2px">TONIGHT</span>
+      <span style="color:#a89482;font-size:12px;font-weight:600">night 12</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;padding:14px 0 6px">
+      <img src="assets/splash-icon.png" alt="" style="width:104px;height:104px;object-fit:contain;animation:wickBreathe 4.6s ease-in-out infinite alternate">
+      <div style="color:#f7ede2;font-size:44px;font-weight:200;letter-spacing:-1px;line-height:1.1;margin-top:4px">34 min</div>
+      <div style="color:#a89482;font-size:14px;margin-top:2px">until wind-down at 10:30 PM</div>
+      <div style="width:150px;height:3px;border-radius:999px;background:#2e241c;margin-top:18px;overflow:hidden"><div style="height:3px;border-radius:999px;background:linear-gradient(90deg,#e8703a,#ff9d5c);--w:62%;animation:wickFill 1.4s cubic-bezier(.22,1,.36,1) forwards"></div></div>
+      <div style="color:#6b5c4e;font-size:11px;font-weight:600;letter-spacing:1.2px;margin-top:8px">EVENING BURNED DOWN</div>
+    </div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:center;gap:8px;background:#e8703a;border-radius:999px;min-height:54px;padding:16px 24px;margin-top:14px">
+      <div style="position:absolute;inset:0;border-radius:999px;border:1px solid rgba(255,157,92,.6);animation:wickPulseRing 3.4s ease-out infinite"></div>
+      <span style="color:#1a0f08;font-size:16px;font-weight:700">Light it now</span>
+      <span style="color:rgba(26,15,8,.7);font-size:13px;font-weight:600">· 9 min</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin:26px 0 10px">
+      <span style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px">THE DESCENT</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="color:#ff9d5c;font-size:13px;font-weight:600">Night Routine</span><i data-feather="chevron-right" style="width:14px;height:14px;color:#ff9d5c"></i></span>
+    </div>
+    <div style="position:relative;padding-left:34px">
+      <div style="position:absolute;left:9px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,#ff9d5c,rgba(255,157,92,.35) 40%,rgba(255,157,92,.05))"></div>
+      <sc-for list="{{ descent }}" as="s" hint-placeholder-count="6">
+        <div style="position:relative;display:flex;align-items:baseline;gap:10px;padding:7px 0">
+          <div style="position:absolute;left:-29px;top:11px;width:8px;height:8px;border-radius:50%;background:{{ s.dot }};box-shadow:0 0 0 3px #14100c"></div>
+          <span style="flex:1;color:{{ s.color }};font-size:15px">{{ s.name }}</span>
+          <span style="color:#6b5c4e;font-size:12px;font-variant-numeric:tabular-nums">{{ s.time }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="position:relative;display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="1d">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Night one — the empty state, filled with content instead of air. Compact hero, a two-tap check-in, and a first-night explainer where the streak and history would sit. Tap a chip.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#1d1610,#14100c);overflow:hidden">
+  <div style="position:absolute;top:-70px;right:-70px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(255,157,92,.14),rgba(255,157,92,0) 65%);animation:wickBreatheSoft 5.8s ease-in-out infinite alternate;pointer-events:none"></div>
+  <div style="position:relative;flex:1;padding:62px 24px 0;overflow:hidden">
+    <div style="padding:20px 0 22px">
+      <span style="color:#ff9d5c;font-size:11px;font-weight:700;letter-spacing:2px">NIGHT ONE</span>
+      <div style="color:#f7ede2;font-size:38px;font-weight:300;letter-spacing:-.5px;line-height:1.1;margin-top:8px">Anytime</div>
+      <div style="color:#a89482;font-size:14px;margin-top:4px">no reminder set — start whenever you're ready</div>
+    </div>
+    <div style="border:1px solid #2e241c;border-radius:20px;padding:18px;background:rgba(255,157,92,.04)">
+      <div style="color:#6b5c4e;font-size:10px;font-weight:700;letter-spacing:1.2px;margin-bottom:12px">HOW'S TONIGHT?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <sc-for list="{{ moods }}" as="m" hint-placeholder-count="4">
+          <div onClick="{{ pickMood }}" data-mood="{{ m.id }}" style="cursor:pointer;user-select:none;border:1px solid {{ m.border }};background:{{ m.bg }};color:{{ m.color }};border-radius:999px;padding:9px 15px;font-size:13px;font-weight:600;transition:background .22s cubic-bezier(.33,1,.68,1),border-color .22s,color .22s">{{ m.name }}</div>
+        </sc-for>
+      </div>
+      <div style="color:#a89482;font-size:13px;line-height:19px;margin-top:14px">{{ moodNote }}</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;background:#e8703a;border-radius:999px;min-height:54px;padding:16px 24px;margin-top:18px">
+      <span style="color:#1a0f08;font-size:16px;font-weight:700">{{ ctaLabel }}</span>
+      <span style="color:rgba(26,15,8,.7);font-size:13px;font-weight:600">{{ ctaMeta }}</span>
+    </div>
+    <div style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px;margin:30px 0 12px">WHAT HAPPENS AFTER</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:14px;align-items:center">
+        <div style="width:34px;height:34px;flex:none;border-radius:999px;border:1px solid #2e241c;background:#1f1813;display:flex;align-items:center;justify-content:center"><i data-feather="check" style="width:15px;height:15px;color:#6b5c4e"></i></div>
+        <div><div style="color:#f7ede2;font-size:14px;font-weight:600">Tonight fills in</div><div style="color:#6b5c4e;font-size:12px;line-height:17px">Your streak, your week, and what you did last night appear here.</div></div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center">
+        <div style="width:34px;height:34px;flex:none;border-radius:999px;border:1px solid #2e241c;background:#1f1813;display:flex;align-items:center;justify-content:center"><i data-feather="award" style="width:15px;height:15px;color:#6b5c4e"></i></div>
+        <div><div style="color:#f7ede2;font-size:14px;font-weight:600">13 badges to earn</div><div style="color:#6b5c4e;font-size:12px;line-height:17px">The first one lands the moment you finish tonight.</div></div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center">
+        <div style="width:34px;height:34px;flex:none;border-radius:999px;border:1px solid #2e241c;background:#1f1813;display:flex;align-items:center;justify-content:center"><i data-feather="bell" style="width:15px;height:15px;color:#6b5c4e"></i></div>
+        <div><div style="color:#f7ede2;font-size:14px;font-weight:600">Pick a wind-down time</div><div style="color:#6b5c4e;font-size:12px;line-height:17px">One reminder, the same time each night. <span style="color:#ff9d5c;font-weight:600">Set it →</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div style="position:relative;display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+</div>
+
+<p class="dv-sub">MODULES</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1e">
+<div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Current, recreated from source. Three cards and a lot of floor below them.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#1d1610,#14100c)">
+  <div style="flex:1;padding:62px 0 0;overflow:hidden">
+    <div style="padding:0 24px;margin-bottom:16px"><span style="color:#f7ede2;font-size:30px;font-weight:700">Modules</span></div>
+    <div style="padding:0 24px">
+      <div style="color:#a89482;font-size:15px;margin-bottom:24px">Pick something to wind down with.</div>
+      <sc-for list="{{ modules }}" as="m" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;background:rgba(255,157,92,.07);border:1px solid rgba(255,157,92,.22);border-radius:26px;padding:24px;margin-bottom:16px">
+          <div style="width:44px;height:44px;border-radius:14px;background:rgba(255,157,92,.14);display:flex;align-items:center;justify-content:center;margin-right:16px"><i data-feather="{{ m.f }}" style="width:22px;height:22px;color:#ff9d5c"></i></div>
+          <div style="flex:1">
+            <div style="color:#f7ede2;font-size:17px;font-weight:700;margin-bottom:3px">{{ m.name }}</div>
+            <div style="color:#a89482;font-size:13px;line-height:18px">{{ m.body }}</div>
+          </div>
+          <i data-feather="chevron-right" style="width:18px;height:18px;color:#ff9d5c;flex:none;margin-left:8px"></i>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="1f">
+<div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Same three cards, earning their height. Each carries a live line of your own data, the icon plate breathes on the one you use most, and a short-session row fills the floor.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#1d1610,#14100c);overflow:hidden">
+  <div style="position:absolute;top:150px;left:-100px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(255,157,92,.12),rgba(255,157,92,0) 65%);animation:wickBreatheSoft 6.2s ease-in-out infinite alternate;pointer-events:none"></div>
+  <div style="position:relative;flex:1;padding:62px 0 0;overflow:hidden">
+    <div style="padding:0 24px;margin-bottom:14px"><span style="color:#f7ede2;font-size:30px;font-weight:700">Modules</span></div>
+    <div style="padding:0 24px">
+      <div style="color:#a89482;font-size:15px;margin-bottom:20px">Pick something to wind down with.</div>
+      <sc-for list="{{ modulesRich }}" as="m" hint-placeholder-count="3">
+        <div style="display:flex;align-items:flex-start;background:rgba(255,157,92,.07);border:1px solid {{ m.border }};border-radius:26px;padding:20px;margin-bottom:14px">
+          <div style="position:relative;width:44px;height:44px;flex:none;margin-right:16px;display:flex;align-items:center;justify-content:center">
+            <div style="position:absolute;inset:-6px;border-radius:18px;background:radial-gradient(circle,rgba(255,157,92,.28),rgba(255,157,92,0) 70%);animation:wickBreathe {{ m.pulse }} ease-in-out infinite alternate"></div>
+            <div style="position:relative;width:44px;height:44px;border-radius:14px;background:rgba(255,157,92,.14);display:flex;align-items:center;justify-content:center"><i data-feather="{{ m.f }}" style="width:22px;height:22px;color:#ff9d5c"></i></div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="flex:1;min-width:0;color:#f7ede2;font-size:17px;font-weight:700">{{ m.name }}</span><span style="flex:none;white-space:nowrap;color:#6b5c4e;font-size:11px;font-weight:600">{{ m.count }}</span></div>
+            <div style="color:#a89482;font-size:13px;line-height:18px;margin-top:3px">{{ m.body }}</div>
+            <div style="display:flex;align-items:center;gap:7px;margin-top:10px"><span style="width:5px;height:5px;border-radius:50%;background:#e8703a"></span><span style="color:#ff9d5c;font-size:12px;font-weight:600">{{ m.recent }}</span></div>
+          </div>
+          <i data-feather="chevron-right" style="width:18px;height:18px;color:#ff9d5c;flex:none;margin-left:8px"></i>
+        </div>
+      </sc-for>
+    </div>
+    <div style="padding:0 0 0 24px;margin-top:12px">
+      <div style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px;margin-bottom:12px">GOT FIVE MINUTES?</div>
+      <div style="display:flex;gap:12px;overflow:hidden;padding-right:24px;-webkit-mask-image:linear-gradient(90deg,#000 84%,transparent);mask-image:linear-gradient(90deg,#000 84%,transparent)">
+        <sc-for list="{{ quick }}" as="q" hint-placeholder-count="3">
+          <div style="flex:none;width:150px;border:1px solid #2e241c;background:#1f1813;border-radius:18px;padding:14px">
+            <i data-feather="{{ q.f }}" style="width:18px;height:18px;color:#ff9d5c"></i>
+            <div style="color:#f7ede2;font-size:14px;font-weight:600;margin-top:10px">{{ q.name }}</div>
+            <div style="color:#6b5c4e;font-size:12px;margin-top:2px">{{ q.time }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <div style="position:relative;display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="1g">
+<div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>Chapters — full-bleed bands instead of floating cards. Illustration placeholders carry the height; type does the work, no icon plates.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="height:100%;display:flex;flex-direction:column;background:#14100c">
+  <div style="flex:1;overflow:hidden">
+    <div style="padding:62px 24px 18px"><span style="color:#f7ede2;font-size:30px;font-weight:700">Modules</span><div style="color:#a89482;font-size:15px;margin-top:4px">Three ways down.</div></div>
+    <sc-for list="{{ chapters }}" as="c" hint-placeholder-count="3">
+      <div style="position:relative;height:206px;border-top:1px solid #2e241c;overflow:hidden;background:{{ c.bg }}">
+        <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(255,157,92,.09) 0 2px,transparent 2px 11px)"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(90deg,#14100c 22%,rgba(20,16,12,.55) 60%,rgba(20,16,12,.2))"></div>
+        <div style="position:absolute;right:16px;top:14px;font:600 9px ui-monospace,Menlo,monospace;letter-spacing:1px;color:rgba(168,148,130,.75)">{{ c.slot }}</div>
+        <div style="position:absolute;left:0;right:0;bottom:0;padding:0 24px 20px">
+          <div style="color:#ff9d5c;font-size:10px;font-weight:700;letter-spacing:1.6px">{{ c.no }}</div>
+          <div style="color:#f7ede2;font-size:26px;font-weight:700;letter-spacing:-.3px;margin-top:6px">{{ c.name }}</div>
+          <div style="color:#a89482;font-size:13px;line-height:18px;margin-top:5px;max-width:250px;text-wrap:pretty">{{ c.body }}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:12px"><span style="color:#ff9d5c;font-size:13px;font-weight:700">{{ c.cta }}</span><i data-feather="chevron-right" style="width:14px;height:14px;color:#ff9d5c"></i></div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="1h">
+<div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>Tonight's pick, then the rest. One promoted module with an illustration slot and a live glow; the other two drop to a compact 2-up. Weekly recap closes it out.</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+<div style="position:relative;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#1d1610,#14100c);overflow:hidden">
+  <div style="position:relative;flex:1;padding:62px 24px 0;overflow:hidden">
+    <div style="margin-bottom:16px"><span style="color:#f7ede2;font-size:30px;font-weight:700">Modules</span></div>
+    <div style="position:relative;border:1px solid rgba(255,157,92,.22);border-radius:26px;overflow:hidden;background:#1f1813">
+      <div style="position:relative;height:132px;background:#241a10;overflow:hidden">
+        <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(255,157,92,.10) 0 2px,transparent 2px 11px)"></div>
+        <div style="position:absolute;bottom:-70px;left:50%;margin-left:-110px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(255,157,92,.30),rgba(255,157,92,0) 62%);animation:wickBreathe 4.6s ease-in-out infinite alternate"></div>
+        <div style="position:absolute;left:14px;top:12px;font:600 9px ui-monospace,Menlo,monospace;letter-spacing:1px;color:rgba(168,148,130,.8)">ILLUSTRATION — RECLINED FIGURE, EMBER RIM LIGHT</div>
+        <div style="position:absolute;left:20px;bottom:14px;background:rgba(20,16,12,.72);border:1px solid rgba(255,157,92,.28);border-radius:999px;padding:5px 11px;color:#ff9d5c;font-size:10px;font-weight:700;letter-spacing:1.2px">TONIGHT'S PICK</div>
+      </div>
+      <div style="padding:18px 20px 20px">
+        <div style="color:#f7ede2;font-size:19px;font-weight:700">Yoga &amp; Stretches</div>
+        <div style="color:#a89482;font-size:13px;line-height:18px;margin-top:4px">Start one stretch, or pick several to run as a sequence.</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;background:#e8703a;border-radius:999px;min-height:48px;padding:13px 20px;margin-top:16px">
+          <span style="color:#1a0f08;font-size:15px;font-weight:700">Open library</span>
+          <span style="color:rgba(26,15,8,.7);font-size:12px;font-weight:600">· 30 stretches</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:14px">
+      <sc-for list="{{ pair }}" as="p" hint-placeholder-count="2">
+        <div style="flex:1;border:1px solid #2e241c;background:rgba(255,157,92,.05);border-radius:22px;padding:16px">
+          <div style="width:38px;height:38px;border-radius:12px;background:rgba(255,157,92,.14);display:flex;align-items:center;justify-content:center"><i data-feather="{{ p.f }}" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+          <div style="color:#f7ede2;font-size:15px;font-weight:700;margin-top:12px">{{ p.name }}</div>
+          <div style="color:#6b5c4e;font-size:12px;line-height:17px;margin-top:3px">{{ p.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="border:1px solid #2e241c;border-radius:22px;padding:18px;margin-top:14px;background:#1f1813">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+        <span style="color:#6b5c4e;font-size:11px;font-weight:700;letter-spacing:1.2px">THIS WEEK</span>
+        <span style="color:#a89482;font-size:12px;font-weight:600">1h 24m wound down</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between">
+        <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+          <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+            <div style="height:56px;display:flex;align-items:flex-end"><div style="width:16px;height:{{ b.h }};border-radius:5px;background:{{ b.bg }}"></div></div>
+            <span style="font-size:10px;font-weight:600;color:#6b5c4e;margin-top:10px">{{ b.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <div style="position:relative;display:flex;background:#1c1611;border-top:1px solid #2e241c;padding:8px 0 28px">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="moon" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">Tonight</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;border-radius:999px;background:rgba(255,157,92,.14);margin-bottom:2px"><i data-feather="grid" style="width:19px;height:19px;color:#ff9d5c"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#ff9d5c">Modules</span>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 0">
+      <div style="padding:4px 16px;margin-bottom:2px"><i data-feather="user" style="width:19px;height:19px;color:#6b5c4e"></i></div>
+      <span style="font-size:11px;font-weight:600;color:#6b5c4e">You</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+</div>
+
+<p class="dv-next">Try next: "take the hero from <a class="dv-oid" href="#1c">1c</a> into <a class="dv-oid" href="#1b">1b</a>" · "make <a class="dv-oid" href="#1g">1g</a> the Modules direction and show the stretch library in it" · "show <a class="dv-oid" href="#1b">1b</a> as a new-user empty state"</p>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1900,&quot;height&quot;:1100}}">
+const F = { emberVeil: 'rgba(255,157,92,.07)', emberGlow: 'rgba(255,157,92,.14)', emberEdge: 'rgba(255,157,92,.22)' };
+
+class Component extends DCLogic {
+  state = { mood: 'wired', burn: 0 };
+
+  componentDidMount() { this.paintIcons(); }
+  componentDidUpdate() { this.paintIcons(); }
+
+  paintIcons() {
+    const go = () => { if (window.feather) window.feather.replace(); else setTimeout(go, 120); };
+    requestAnimationFrame(go);
+  }
+
+  renderVals() {
+    const steps = [
+      { name: 'Box Breathing', time: '1m', f: 'wind' },
+      { name: 'Neck Rolls', time: '30s', f: 'rotate-cw' },
+      { name: 'Cat-Cow', time: '45s', f: 'repeat' },
+      { name: "Child's Pose", time: '1m', f: 'chevrons-down' },
+      { name: 'Seated Forward Fold', time: '45s', f: 'corner-right-down' },
+      { name: 'Figure-Four Stretch', time: '1m', f: 'crosshair' },
+      { name: 'Legs Up the Wall', time: '2m', f: 'corner-right-up' },
+      { name: 'Final Relaxation', time: '2m', f: 'moon' },
+    ];
+
+    const done = [true, true, true, false, true, true, true];
+    const week = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((label, i) => ({
+      label,
+      mark: done[i] ? '✓' : '',
+      bg: done[i] ? '#ff9d5c' : '#1f1813',
+      border: done[i] ? '#ff9d5c' : (i === 6 ? '#ff9d5c' : '#2e241c'),
+      tick: '#14100c',
+    }));
+
+    const embers = [
+      { x: '18%', s: '3px', dur: '9s', delay: '0s' },
+      { x: '31%', s: '2px', dur: '12s', delay: '2.4s' },
+      { x: '47%', s: '4px', dur: '10.5s', delay: '5.1s' },
+      { x: '58%', s: '2px', dur: '13s', delay: '1.2s' },
+      { x: '72%', s: '3px', dur: '11s', delay: '6.8s' },
+      { x: '84%', s: '2px', dur: '14s', delay: '3.6s' },
+    ];
+
+    const emberCard = [
+      ['9%', 2, 7.5, 0], ['17%', 3, 9.5, 3.1], ['26%', 2, 11, 6.4],
+      ['38%', 3, 8.5, 1.7], ['46%', 2, 12, 4.9], ['57%', 4, 9, 7.6],
+      ['66%', 2, 10.5, 2.3], ['78%', 3, 13, 5.5], ['89%', 2, 8, 0.9],
+    ].map(([x, s, dur, delay]) => ({ x, s: s + 'px', dur: dur + 's', delay: delay + 's' }));
+
+    const descent = steps.slice(0, 6).map((s, i) => ({
+      name: s.name,
+      time: s.time,
+      color: i === 0 ? '#f7ede2' : (i < 3 ? '#a89482' : '#6b5c4e'),
+      dot: i === 0 ? '#ff9d5c' : (i < 3 ? 'rgba(255,157,92,.55)' : 'rgba(255,157,92,.2)'),
+    }));
+
+    const moods = [
+      { id: 'wired', name: 'Wired' },
+      { id: 'tired', name: 'Tired but restless' },
+      { id: 'sore', name: 'Sore' },
+      { id: 'calm', name: 'Already calm' },
+    ].map((m) => {
+      const on = m.id === this.state.mood;
+      return { ...m, bg: on ? F.emberGlow : F.emberVeil, border: on ? '#ff9d5c' : '#2e241c', color: on ? '#ff9d5c' : '#a89482' };
+    });
+
+    const notes = {
+      wired: 'Then we start long and slow — 4 minutes of breath before you move at all.',
+      tired: 'A short one, mostly floor work. Nothing that asks you to stand back up.',
+      sore: 'Hips and back get the time tonight; the deep poses are swapped for gentler ones.',
+      calm: 'Two poses and lights out. No need to make an evening of it.',
+    };
+    const cta = {
+      wired: { label: 'Start long wind-down', meta: '· 14 min' },
+      tired: { label: 'Start floor wind-down', meta: '· 9 min' },
+      sore: { label: 'Start release routine', meta: '· 12 min' },
+      calm: { label: 'Start short wind-down', meta: '· 4 min' },
+    }[this.state.mood];
+
+    const modules = [
+      { name: 'Yoga & Stretches', body: 'Start one stretch, or pick several to run as a sequence.', f: 'activity' },
+      { name: 'My Routines', body: 'Build your own wind-down, and choose the one for tonight.', f: 'list' },
+      { name: 'Reading & Meditation', body: 'A timed session with a Do Not Disturb reminder.', f: 'book-open' },
+    ];
+
+    const modulesRich = [
+      { ...modules[0], count: '30 stretches', recent: 'Hip opener, last night', pulse: '4.6s', border: F.emberEdge },
+      { ...modules[1], count: '3 saved', recent: 'Quick wind-down is set for tonight', pulse: '6.4s', border: '#2e241c' },
+      { ...modules[2], count: '4 sessions', recent: 'Body scan, two nights ago', pulse: '7.8s', border: '#2e241c' },
+    ];
+
+    const quick = [
+      { name: 'Long Exhale', time: '1 min · breath', f: 'wind' },
+      { name: 'Neck & shoulders', time: '4 min · 5 poses', f: 'rotate-cw' },
+      { name: 'Legs Up the Wall', time: '2 min · rest', f: 'corner-right-up' },
+    ];
+
+    const chapters = [
+      { no: 'ONE', name: 'Yoga & Stretches', body: 'Start one stretch, or pick several to run as a sequence.', cta: '30 stretches', slot: 'ILLUSTRATION — FORWARD FOLD', bg: '#241a10' },
+      { no: 'TWO', name: 'My Routines', body: 'Build your own wind-down, and choose the one for tonight.', cta: '3 saved', slot: 'ILLUSTRATION — STACKED CARDS', bg: '#1f1813' },
+      { no: 'THREE', name: 'Reading & Meditation', body: 'A timed session with a Do Not Disturb reminder.', cta: 'Start a session', slot: 'ILLUSTRATION — LAMP & BOOK', bg: '#241a10' },
+    ];
+
+    const pair = [
+      { name: 'My Routines', body: '3 saved · Quick wind-down set', f: 'list' },
+      { name: 'Reading', body: 'Timed, with Do Not Disturb', f: 'book-open' },
+    ];
+
+    const heights = [30, 44, 22, 0, 38, 52, 34];
+    const bars = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((label, i) => ({
+      label,
+      h: (heights[i] || 4) + 'px',
+      bg: heights[i] === 0 ? '#2e241c' : (i === 5 ? '#ff9d5c' : '#e8703a'),
+    }));
+
+    return {
+      steps,
+      steps5: steps.slice(0, 5),
+      week, embers, emberCard, descent, moods,
+      moodNote: notes[this.state.mood],
+      ctaLabel: cta.label,
+      ctaMeta: cta.meta,
+      pickMood: (e) => this.setState({ mood: e.currentTarget.dataset.mood }),
+      modules, modulesRich, quick, chapters, pair, bars,
+      ...this.wick(descent),
+    };
+  }
+
+  /** Everything on 2a that reads off how far the evening has burned. */
+  wick(descent) {
+    const b = this.state.burn / 100;
+    const lerp = (a, z) => a + (z - a) * b;
+    const mins = Math.round(lerp(96, 0));
+    const startMin = 18 * 60 + 54; // the moment the wick is lit
+    const now = startMin + Math.round(lerp(0, 96 + 60));
+    const h24 = Math.floor(now / 60) % 24;
+    const clock =
+      ((h24 % 12) || 12) + ':' + String(now % 60).padStart(2, '0') + (h24 >= 12 ? ' PM' : ' AM');
+
+    // Screen-space geometry of the flame: 62px safe area + ~15px eyebrow row,
+    // then the hero box, with the image hanging 14px below its bottom edge.
+    const heroBox = lerp(202, 110);
+    const flame = lerp(300, 100);
+    const flameCentre = 77 + heroBox + 14 - flame / 2;
+    const bloomSize = flame * 2.3;
+
+    return {
+      burnValue: this.state.burn,
+      setBurn: (e) => this.setState({ burn: Number(e.target.value) }),
+      clockLabel: clock,
+      heroBox: Math.round(heroBox) + 'px',
+      flameSize: Math.round(flame) + 'px',
+      flameOpacity: lerp(1, 0.46).toFixed(2),
+      bloom: lerp(0.19, 0.05).toFixed(3),
+      // Glow is centred on the flame's own centre, so it tracks as it burns down.
+      bloomTop: Math.round(flameCentre - bloomSize / 2) + 'px',
+      bloomSize: Math.round(bloomSize) + 'px',
+      bloomOffset: Math.round(-bloomSize / 2) + 'px',
+      castTop: Math.round(flameCentre + flame / 2 - 34) + 'px',
+      castLight: lerp(0.3, 0.07).toFixed(3),
+      shaftOpacity: lerp(1, 0.22).toFixed(2),
+      emberOpacity: lerp(1, 0.3).toFixed(2),
+      nightVeil: lerp(0, 0.42).toFixed(2),
+      burnedPct: Math.round(b * 100) + '%',
+      burnedLabel: b >= 1 ? 'BURNED OUT' : 'EVENING BURNED DOWN',
+      countdown: mins > 0 ? mins + ' min' : 'Now',
+      countdownCaption:
+        mins > 0 ? 'until wind-down at 10:30 PM' : 'the wick is out — go to bed',
+      ctaWick: mins > 0 ? 'Light it now' : 'Start anyway',
+      descent4: descent.slice(0, 4),
+    };
+  }
+}
+
+</script>
+</body>
+</html>
