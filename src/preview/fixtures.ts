@@ -1,5 +1,6 @@
 import type { LoggedSession } from '../sessions';
-import type { RoutineSettings } from '../storage';
+import type { Reminders } from '../storage';
+import { EVERY_NIGHT, WEEKNIGHTS } from '../reminders';
 import type { RoutinePlan } from '../routineData';
 import { BUILTIN_ROUTINE_ID, stepCatalog } from '../routineData';
 import type { SessionKind } from '../database.types';
@@ -113,20 +114,58 @@ const savedRoutines: RoutinePlan[] = [
  * are: Tonight's whole hero is an interpolation on how long is left, and a fixed
  * clock time would show the wick freshly lit for twenty-two hours of the day.
  */
-function reminderIn(minutes: number): RoutineSettings {
+function windDownIn(minutes: number, nights = EVERY_NIGHT): Reminders['wind-down'] {
   const at = new Date(Date.now() + minutes * 60 * 1000);
-  return { hour: at.getHours(), minute: at.getMinutes(), enabled: true };
+  return {
+    id: 'wind-down',
+    hour: at.getHours(),
+    minute: at.getMinutes(),
+    enabled: true,
+    nights,
+  };
 }
 
-export const SETTINGS_FIXTURES: Record<string, RoutineSettings> = {
+/** Lights out sits a fixed distance after wind-down, as it would in real use. */
+function lightsOutAfter(
+  windDown: Reminders['wind-down'],
+  minutes: number,
+  { enabled = true, nights = windDown.nights } = {}
+): Reminders['lights-out'] {
+  const at = new Date();
+  at.setHours(windDown.hour, windDown.minute + minutes, 0, 0);
+  return { id: 'lights-out', hour: at.getHours(), minute: at.getMinutes(), enabled, nights };
+}
+
+/**
+ * Wind-down stays on every night in every fixture, deliberately.
+ *
+ * Tonight's whole hero reads off it, and a fixture set to weeknights would draw
+ * the wick unlit on a Saturday — a screenshot taken at the weekend would look
+ * like the screen was broken. The partial-week case is put on lights out
+ * instead, which only Settings reads. Same trap as shooting an ambient loop at
+ * 600ms and calling the glow too dim.
+ */
+function pair(windDown: Reminders['wind-down'], lightsOut: Partial<{ enabled: boolean; nights: typeof WEEKNIGHTS }> = {}): Reminders {
+  return {
+    'wind-down': windDown,
+    'lights-out': lightsOutAfter(windDown, 75, lightsOut),
+  };
+}
+
+export const SETTINGS_FIXTURES: Record<string, Reminders> = {
   // Nothing set yet: the countdown reads "Anytime" and the burn bar is absent.
-  empty: { hour: 21, minute: 30, enabled: false },
+  empty: pair(
+    { id: 'wind-down', hour: 21, minute: 30, enabled: false, nights: EVERY_NIGHT },
+    { enabled: false }
+  ),
   // Freshly lit — the flame at full size, before the evening has taken any of it.
-  starting: reminderIn(96),
-  // Mid-evening, which is the state the design was drawn against.
-  steady: reminderIn(48),
+  starting: pair(windDownIn(96)),
+  // Mid-evening, which is the state the design was drawn against. Lights out is
+  // weeknights-only here, so Settings shows a partial strip rather than all
+  // seven lit — the only state in which the strip is doing any work.
+  steady: pair(windDownIn(48), { nights: WEEKNIGHTS }),
   // Burned out, so the veil is at full strength and the CTA reads "Start anyway".
-  veteran: reminderIn(0),
+  veteran: pair(windDownIn(0)),
 };
 
 /** Keyed by the same fixture names, so one `--fixture` drives every screen. */

@@ -42,7 +42,13 @@ const SCREENS: Record<
   progress: { component: ProgressScreen },
   tonight: { component: TonightScreen },
   modules: { component: ModulesScreen },
-  settings: { component: SettingsScreen },
+  /**
+   * Needs the provider for the same reason `auth` does, and had been listed
+   * without it — so every attempt to shoot this screen threw inside `useAuth`
+   * and hung the run rather than failing loudly. It reads `user?.email` and
+   * nothing else, which with no session renders the signed-out dash.
+   */
+  settings: { component: SettingsScreen, needsAuth: true },
   routines: { component: RoutinesScreen },
   stretches: { component: StretchLibraryScreen },
   meditation: { component: MeditationScreen },
@@ -99,7 +105,7 @@ export default function Preview({ request }: { request: PreviewRequest }) {
     // Badges are left unseen on purpose — the NEW treatment is one of the
     // things worth looking at.
     AsyncStorage.multiSet([
-      ['profile_cache_v1', JSON.stringify(settings)],
+      ['profile_cache_v1', JSON.stringify({ reminders: settings })],
       ['session_log_v1', JSON.stringify(rows)],
       ['session_queue_v1', '[]'],
       ['seen_badges_v1', '[]'],

@@ -8,8 +8,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import * as Notifications from 'expo-notifications';
 import { theme } from '../theme';
-import { defaultRoutine, RoutineStep } from '../routineData';
-import { NIGHT_ROUTINE_CATEGORY } from '../notifications';
+import { resolveSteps, RoutineStep } from '../routineData';
+import { applyReminders, reminderFromResponse } from '../notifications';
+import { loadActiveRoutine } from '../routines';
+import { loadReminders } from '../storage';
 import { useAuth } from '../lib/AuthContext';
 import TabBar from '../components/TabBar';
 import AuthScreen from '../screens/AuthScreen';
@@ -132,12 +134,22 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
   const consumePendingSession = useCallback(() => {
     if (!pendingSession.current || !signedIn || !navigationRef.isReady()) return;
     pendingSession.current = false;
-    navigationRef.navigate('Session', { steps: defaultRoutine, title: 'Night Routine' });
+    // Whichever routine Tonight would have started, not the built-in one — a
+    // reminder that ignores the routine you saved is worse than no shortcut.
+    loadActiveRoutine().then((routine) => {
+      navigationRef.navigate('Session', {
+        steps: resolveSteps(routine.stepIds),
+        title: routine.name,
+      });
+    });
   }, [signedIn, navigationRef]);
 
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      if (response.notification.request.content.data?.type !== NIGHT_ROUTINE_CATEGORY) return;
+      // Only the wind-down reminder opens anything. Lights out has done its job
+      // the moment it is read — sending someone into the app at a quarter to
+      // eleven is the opposite of what it asked them to do.
+      if (reminderFromResponse(response) !== 'wind-down') return;
       pendingSession.current = true;
       consumePendingSession();
     });
@@ -145,6 +157,27 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
   }, [consumePendingSession]);
 
   useEffect(consumePendingSession, [consumePendingSession]);
+
+  /**
+   * Re-register the stored reminders once a session appears.
+   *
+   * Pending notifications do not survive a reinstall, and the OS drops them on
+   * a restore to a new device — but the settings do survive, in the profile
+   * row. Without this, Settings would keep showing a reminder that was silently
+   * no longer scheduled, and the only way to fix it would be to toggle it off
+   * and on. Rescheduling is cancel-then-register per key, so running it every
+   * launch is a no-op when nothing has changed.
+   */
+  useEffect(() => {
+    if (!signedIn) return;
+    let active = true;
+    loadReminders().then((reminders) => {
+      if (active) applyReminders(Object.values(reminders));
+    });
+    return () => {
+      active = false;
+    };
+  }, [signedIn]);
 
   // Held until the persisted session is read back, so we never flash the sign-in
   // screen at someone who is already logged in.

@@ -16,8 +16,8 @@ import { useReduceMotion } from '../reduceMotion';
 import { builtinRoutine, resolveSteps, routineMinutes } from '../routineData';
 import { loadActiveRoutine, refreshActiveRoutine } from '../routines';
 import type { SavedRoutine } from '../routines';
-import { loadCachedSettings, loadSettings } from '../storage';
-import type { RoutineSettings } from '../storage';
+import { type Reminders, loadCachedReminders, loadReminders } from '../storage';
+import { type Reminder, fireAtOn } from '../reminders';
 import { loadProgress, nightOf } from '../sessions';
 import { lastNights } from '../streak';
 import type { BadgeState } from '../achievements';
@@ -114,15 +114,17 @@ function formatTime(hour: number, minute: number): string {
  * Clamped at both ends rather than allowed to run negative: at nine in the
  * morning the wick is simply not lit yet, and an hour after the reminder it is
  * as out as it is ever going to get.
+ *
+ * `fireAtOn` rather than the next firing, because a reminder set for weeknights
+ * only should leave Saturday unlit — and because once tonight's has passed, the
+ * next one is tomorrow, which would relight the wick the moment it went out.
  */
 function burnedDown(
-  reminder: RoutineSettings | null,
+  reminder: Reminder | null,
   now: Date = new Date()
 ): { burn: number; minutes: number } {
-  if (!reminder?.enabled) return { burn: 0, minutes: EVENING_MINUTES };
-
-  const at = new Date(now);
-  at.setHours(reminder.hour, reminder.minute, 0, 0);
+  const at = reminder ? fireAtOn(reminder, now) : null;
+  if (!at) return { burn: 0, minutes: EVENING_MINUTES };
 
   const left = Math.min(EVENING_MINUTES, Math.max(0, (at.getTime() - now.getTime()) / 60_000));
   return { burn: 1 - left / EVENING_MINUTES, minutes: Math.round(left) };
@@ -140,7 +142,7 @@ export default function TonightScreen() {
   const insets = useSafeAreaInsets();
   const still = useReduceMotion();
 
-  const [reminder, setReminder] = useState<RoutineSettings | null>(null);
+  const [reminder, setReminder] = useState<Reminder | null>(null);
   const [streak, setStreak] = useState(0);
   const [nights, setNights] = useState<Set<string>>(new Set());
   const [earned, setEarned] = useState<BadgeState | null>(null);
@@ -154,13 +156,13 @@ export default function TonightScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      const take = (s: RoutineSettings) => {
+      const take = (r: Reminders) => {
         if (!active) return;
-        setReminder(s);
-        setClock(burnedDown(s));
+        setReminder(r['wind-down']);
+        setClock(burnedDown(r['wind-down']));
       };
-      loadCachedSettings().then(take);
-      loadSettings().then(take);
+      loadCachedReminders().then(take);
+      loadReminders().then(take);
       // Same two-step for tonight's routine, so switching it in Modules is
       // reflected here the instant you come back.
       loadActiveRoutine().then((r) => active && setRoutine(r));
