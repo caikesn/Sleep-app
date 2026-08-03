@@ -16,6 +16,9 @@ import AuthScreen from '../screens/AuthScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import RedLightTutorialScreen from '../screens/RedLightTutorialScreen';
 import CandleSheet from './CandleSheet';
+import PoseSheet from './PoseSheet';
+import RoutineScreen from '../screens/RoutineScreen';
+import { resolveSteps } from '../routineData';
 import { TabsNavigator } from '../navigation';
 import { AuthProvider } from '../lib/AuthContext';
 import { FIXTURES, ROUTINE_FIXTURES, SETTINGS_FIXTURES, EDITABLE_ROUTINE_ID } from './fixtures';
@@ -88,6 +91,26 @@ const SCREENS: Record<
    * the fixture's log happens to produce.
    */
   candles: { component: CandleSheet },
+  /**
+   * Also not a screen: every stretch figure in one grid. Scale and stroke drift
+   * between thirty drawings is invisible one at a time and obvious in a grid,
+   * which is the only reason this exists. See `PoseSheet.tsx`.
+   */
+  poses: { component: PoseSheet },
+  /**
+   * A running session, which is otherwise three taps deep behind a routine.
+   * Lands on the get-ready countdown of a two-sided pose — the state with the
+   * most in it: the mirrored figure, the side label and the accent timer.
+   *
+   *   npm run shoot -- session
+   */
+  session: {
+    component: RoutineScreen,
+    params: {
+      steps: resolveSteps(['figure-four', 'childs-pose', 'legs-up-wall']),
+      title: 'Wind-down',
+    },
+  },
   /**
    * The whole tab bar, with all three nested stacks real. Every other entry
    * here mounts one screen with no navigator around it, which is what makes

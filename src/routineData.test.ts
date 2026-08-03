@@ -2,10 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CATEGORIES,
+  GET_READY_SECONDS,
   LEVELS,
   MAX_ROUTINE_NAME,
+  MIN_HOLD_SECONDS,
   builtinRoutine,
   cleanRoutineName,
+  defaultRoutine,
   filterSteps,
   groupByCategory,
   moveStep,
@@ -14,7 +17,11 @@ import {
   routineMinutes,
   routineSeconds,
   stepCatalog,
+  stepLength,
+  stepSeconds,
+  stepTotalSeconds,
 } from './routineData';
+import { POSES } from './poseArt';
 
 const [first, second, third] = stepCatalog.map((step) => step.id);
 
@@ -40,6 +47,82 @@ test('every step carries a real category and level, and has a description', () =
     assert.ok(step.seconds > 0, `${step.id} has no duration`);
     assert.ok(step.description.length > 20, `${step.id} needs a real description`);
   }
+});
+
+test('every step has its own drawing, and no two share one', () => {
+  // A shared pose is the exact failure the art was made to end — `open` used to
+  // be the same arrow for both Butterfly and Pigeon.
+  const poses = stepCatalog.map((step) => step.pose);
+  assert.equal(new Set(poses).size, poses.length, 'two steps share a pose');
+
+  for (const step of stepCatalog) {
+    assert.ok(POSES[step.pose], `${step.id} points at a drawing that doesn't exist`);
+  }
+});
+
+test('no hold is shorter than the floor, per side', () => {
+  // The bug this whole change exists for: a 45-second two-sided pose is a
+  // 22-second hold done twice, and the old catalog was full of them.
+  for (const step of stepCatalog) {
+    assert.ok(
+      step.seconds >= MIN_HOLD_SECONDS,
+      `${step.id} holds for ${step.seconds}s${step.perSide ? ' a side' : ''}`
+    );
+  }
+});
+
+test('a two-sided pose runs its hold twice, with a get-ready before each', () => {
+  const twoSided = stepCatalog.find((step) => step.perSide);
+  const oneSided = stepCatalog.find((step) => !step.perSide);
+  assert.ok(twoSided && oneSided);
+
+  assert.equal(stepSeconds(twoSided), twoSided.seconds * 2);
+  assert.equal(stepTotalSeconds(twoSided), (twoSided.seconds + GET_READY_SECONDS) * 2);
+
+  assert.equal(stepSeconds(oneSided), oneSided.seconds);
+  assert.equal(stepTotalSeconds(oneSided), oneSided.seconds + GET_READY_SECONDS);
+});
+
+test('a two-sided pose says so in its duration, and its description does not', () => {
+  for (const step of stepCatalog) {
+    assert.equal(
+      stepLength(step).includes('×2'),
+      !!step.perSide,
+      `${step.id} reads as the wrong number of sides`
+    );
+    // The app announces the switch and mirrors the drawing, so a description
+    // repeating it would be the third place to keep in step — and the one that
+    // would go stale silently.
+    assert.ok(
+      !/switch sides/i.test(step.description),
+      `${step.id} still tells you to switch sides in prose`
+    );
+  }
+});
+
+test('a breath pose lasts a whole number of its own cycles', () => {
+  // 4-7-8 is a 19-second cycle and used to run for 60, cutting you off
+  // three breaths in, mid-exhale.
+  const cycles: Record<string, number> = {
+    breathing: 16,
+    'long-exhale': 12,
+    'four-seven-eight': 19,
+    'alternate-nostril': 16,
+  };
+
+  for (const [id, cycle] of Object.entries(cycles)) {
+    const step = stepCatalog.find((s) => s.id === id);
+    assert.ok(step, `${id} has left the catalog`);
+    assert.equal(step.seconds % cycle, 0, `${id} runs ${step.seconds}s, not a multiple of ${cycle}`);
+  }
+});
+
+test('the built-in routine stays a length someone would actually do', () => {
+  // A guard rather than a target: the point is that a future edit to any one
+  // step cannot quietly turn the nightly routine into twenty minutes.
+  const minutes = routineMinutes(builtinRoutine.stepIds);
+  assert.ok(minutes >= 8 && minutes <= 14, `the built-in routine is now ${minutes} min`);
+  assert.equal(defaultRoutine.length, builtinRoutine.stepIds.length);
 });
 
 test('no category is left empty', () => {

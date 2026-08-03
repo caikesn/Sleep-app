@@ -20,6 +20,7 @@ import {
   removeStep,
   resolveSteps,
   routineMinutes,
+  stepLength,
 } from '../routineData';
 import type { RoutineStep, StepCategory } from '../routineData';
 import {
@@ -32,10 +33,6 @@ import {
 import type { ModulesStackParamList } from '../navigation';
 
 type Props = NativeStackScreenProps<ModulesStackParamList, 'RoutineBuilder'>;
-
-function length(seconds: number): string {
-  return seconds >= 60 ? `${Math.round(seconds / 60)}m` : `${seconds}s`;
-}
 
 /** A small square control. Disabled arrows stay in place so rows never reflow. */
 function Control({
@@ -94,7 +91,7 @@ function StepRow({
         <Text style={styles.stepName} numberOfLines={1}>
           {step.name}
         </Text>
-        <Text style={styles.stepMeta}>{length(step.seconds)}</Text>
+        <Text style={styles.stepMeta}>{stepLength(step)}</Text>
       </View>
       <Control
         icon="up"
@@ -273,7 +270,7 @@ export default function RoutineBuilderScreen({ route, navigation }: Props) {
                 key={step.id}
                 onPress={() => setStepIds((ids) => [...ids, step.id])}
                 accessibilityRole="button"
-                accessibilityLabel={`Add ${step.name}, ${length(step.seconds)}`}
+                accessibilityLabel={`Add ${step.name}, ${stepLength(step)}`}
                 style={({ pressed }) => [styles.addRow, pressed && styles.pressed]}
               >
                 <Icon name={step.icon} size={18} color={theme.textDim} />
@@ -283,7 +280,7 @@ export default function RoutineBuilderScreen({ route, navigation }: Props) {
                 {step.level !== 'gentle' && (
                   <Text style={styles.addTag}>{levelName(step.level)}</Text>
                 )}
-                <Text style={styles.addMeta}>{length(step.seconds)}</Text>
+                <Text style={styles.addMeta}>{stepLength(step)}</Text>
                 <Icon name="plus" size={16} color={theme.ember} />
               </Pressable>
             ))}

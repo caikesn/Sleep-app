@@ -2,6 +2,8 @@ import React from 'react';
 import { Text, StyleSheet, Pressable, View } from 'react-native';
 import { theme, space, radius } from '../theme';
 import Icon, { IconName } from './Icon';
+import Pose from './Pose';
+import type { PoseName } from '../poseArt';
 
 /**
  * A selectable pill: outlined icon, label, and a selected state that brightens
@@ -21,10 +23,19 @@ type Props = {
   meta?: string;
   /** Small qualifier before the meta, e.g. how deep a stretch goes. */
   tag?: string;
+  /**
+   * A figure in the pose, drawn instead of the icon.
+   *
+   * Browsing a catalog of thirty stretches is one of the two moments the shape
+   * of a pose matters — the other is doing it — so the library passes this and
+   * the denser, reorderable lists keep the icon.
+   */
+  pose?: PoseName;
 };
 
-export default function SelectRow({ label, icon, selected, onPress, meta, tag }: Props) {
+export default function SelectRow({ label, icon, selected, onPress, meta, tag, pose }: Props) {
   const spoken = [label, tag, meta].filter(Boolean).join(', ');
+  const tint = selected ? theme.ember : theme.textDim;
 
   return (
     <Pressable
@@ -34,11 +45,18 @@ export default function SelectRow({ label, icon, selected, onPress, meta, tag }:
       accessibilityLabel={spoken}
       style={({ pressed }) => [
         styles.pill,
+        // A figure is nearly twice the height of an icon, so the row gives back
+        // what it takes and ends up the same height it always was.
+        pose && styles.pillWithPose,
         selected && styles.pillSelected,
         pressed && styles.pressed,
       ]}
     >
-      <Icon name={icon} size={19} color={selected ? theme.ember : theme.textDim} />
+      {pose ? (
+        <Pose name={pose} size={34} color={tint} />
+      ) : (
+        <Icon name={icon} size={19} color={tint} />
+      )}
       <Text style={[styles.label, selected && styles.labelSelected]} numberOfLines={1}>
         {label}
       </Text>
@@ -64,6 +82,9 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     paddingHorizontal: space.lg,
     marginBottom: space.sm + 4,
+  },
+  pillWithPose: {
+    paddingVertical: space.sm + 2,
   },
   pillSelected: {
     borderColor: theme.ember,

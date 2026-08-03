@@ -15,6 +15,7 @@ import {
   groupByCategory,
   levelName,
   stepCatalog,
+  stepLength,
   stepsMinutes,
 } from '../routineData';
 import type { RoutineStep, StepCategory } from '../routineData';
@@ -24,10 +25,6 @@ type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<ModulesStackParamList>,
   NativeStackNavigationProp<RootStackParamList>
 >;
-
-function length(seconds: number): string {
-  return seconds >= 60 ? `${Math.round(seconds / 60)}m` : `${seconds}s`;
-}
 
 export default function StretchLibraryScreen() {
   const navigation = useNavigation<Nav>();
@@ -104,12 +101,16 @@ export default function StretchLibraryScreen() {
                 key={step.id}
                 label={step.name}
                 icon={step.icon}
+                // The library is where you decide what a stretch even is, so
+                // this is one of the two lists that gets the drawing rather
+                // than the movement glyph.
+                pose={step.pose}
                 selected={selected.has(step.id)}
                 onPress={() => toggle(step.id)}
                 // Gentle is the baseline here, and tagging two thirds of the
                 // list with it would be noise rather than information.
                 tag={step.level === 'gentle' ? undefined : levelName(step.level)}
-                meta={length(step.seconds)}
+                meta={stepLength(step)}
               />
             ))}
           </View>

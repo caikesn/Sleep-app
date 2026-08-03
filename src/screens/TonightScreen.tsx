@@ -14,7 +14,7 @@ import WeekStrip, { WEEK_LENGTH } from '../components/WeekStrip';
 import { theme, space, radius, gradients, WICK_FALLOFF, EMBER_RGB } from '../theme';
 import { easing, useAmbientLoop } from '../motion';
 import { useReduceMotion } from '../reduceMotion';
-import { builtinRoutine, resolveSteps, routineMinutes } from '../routineData';
+import { builtinRoutine, resolveSteps, routineMinutes, stepLength } from '../routineData';
 import { loadActiveRoutine, refreshActiveRoutine } from '../routines';
 import type { SavedRoutine } from '../routines';
 import { type Reminders, loadCachedReminders, loadReminders } from '../storage';
@@ -639,9 +639,7 @@ export default function TonightScreen() {
                 <Text style={[styles.descentName, { color: tone.name }]} numberOfLines={1}>
                   {step.name}
                 </Text>
-                <Text style={styles.descentTime}>
-                  {step.seconds >= 60 ? `${Math.round(step.seconds / 60)}m` : `${step.seconds}s`}
-                </Text>
+                <Text style={styles.descentTime}>{stepLength(step)}</Text>
               </View>
             );
           })}

@@ -109,6 +109,25 @@ export function ring(kind: BellKind): void {
 }
 
 /**
+ * The last few seconds before a stretch starts, felt rather than heard.
+ *
+ * The countdown into a pose needs a cue, and it cannot be the bell: the bell
+ * means *that stretch is over*, and a second one a few seconds later meaning
+ * "now begin" would make the two indistinguishable in a dark room. So the end
+ * of a hold is a sound and the start of one is a tap — which is also the only
+ * cue that survives someone lying face-down in Sphinx with their eyes shut.
+ */
+export function tick(): void {
+  try {
+    // Web has no haptics, and calling through logs a warning per tick.
+    if (Platform.OS === 'web') return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  } catch {
+    // Ignored: see the note at the top of the file.
+  }
+}
+
+/**
  * Frees both players. Must run when the meditation screen unmounts — an
  * AudioPlayer holds a native handle, and leaking one per session eventually
  * costs the app its audio focus.
