@@ -447,7 +447,7 @@ export default function TonightScreen() {
     <Screen ground={gradients.wick} groundStops={WICK_FALLOFF} background={background}>
       <View style={styles.eyebrowRow} onLayout={(e) => setEyebrowHeight(e.nativeEvent.layout.height)}>
         <Text style={styles.eyebrow}>TONIGHT</Text>
-        {streak > 0 && <Text style={styles.night}>night {streak}</Text>}
+        {streak > 0 && <Text style={styles.night}>{streak}rd night</Text>}
       </View>
 
       <View style={[styles.flameBox, { height: boxHeight }]}>
