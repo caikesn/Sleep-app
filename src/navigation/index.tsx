@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import type { CompositeNavigationProp, NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import type { MaterialTopTabNavigationProp } from '@react-navigation/material-top-tabs';
 import * as Notifications from 'expo-notifications';
 import { theme } from '../theme';
 import { resolveSteps, RoutineStep } from '../routineData';
@@ -13,8 +13,10 @@ import { applyReminders, reminderFromResponse } from '../notifications';
 import { loadActiveRoutine } from '../routines';
 import { loadReminders } from '../storage';
 import { useAuth } from '../lib/AuthContext';
+import { clearOnboardingPending, isOnboardingPending } from '../onboarding';
 import TabBar from '../components/TabBar';
 import AuthScreen from '../screens/AuthScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import TonightScreen from '../screens/TonightScreen';
 import ProgressScreen from '../screens/ProgressScreen';
@@ -30,6 +32,7 @@ import RedLightTutorialScreen from '../screens/RedLightTutorialScreen';
 export type RootStackParamList = {
   Auth: undefined;
   ForgotPassword: undefined;
+  Onboarding: undefined;
   Tabs: undefined;
   Session: { steps: RoutineStep[]; title: string };
   Meditation: undefined;
@@ -64,12 +67,27 @@ export type YouStackParamList = {
  * so it needs both navigators' methods rather than a cast that happens to work.
  */
 export type TabScreenNavigation = CompositeNavigationProp<
-  BottomTabNavigationProp<TabParamList>,
+  MaterialTopTabNavigationProp<TabParamList>,
   NativeStackNavigationProp<RootStackParamList>
 >;
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
-const Tabs = createBottomTabNavigator<TabParamList>();
+
+/**
+ * Top tabs, worn at the bottom.
+ *
+ * The bottom-tab navigator has no swipe and never will — it renders one screen
+ * at a time, so there is nothing beside the current page for a gesture to drag
+ * in. This one is a pager: the three tabs are laid out side by side and the
+ * page follows your thumb. `tabBarPosition` is the only thing that makes it
+ * "top" tabs, and it is set to bottom here.
+ *
+ * On iOS and Android that pager is `react-native-pager-view`, a native scroll
+ * view, so the swipe never touches the JS thread. On web `react-native-tab-view`
+ * falls back to a PanResponder — which is what keeps the screenshot harness
+ * working, and also why the web build's swipe is the rougher of the two.
+ */
+const Tabs = createMaterialTopTabNavigator<TabParamList>();
 const ModulesStack = createNativeStackNavigator<ModulesStackParamList>();
 const YouStack = createNativeStackNavigator<YouStackParamList>();
 
@@ -96,9 +114,22 @@ function YouNavigator() {
   );
 }
 
-function TabsNavigator() {
+/**
+ * Exported so the preview harness can mount the real thing. Deep-linking
+ * between tabs is the one behaviour that only exists once all three stacks are
+ * assembled, so a harness that mounts screens one at a time cannot see it.
+ */
+export function TabsNavigator() {
   return (
-    <Tabs.Navigator screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
+    <Tabs.Navigator
+      tabBarPosition="bottom"
+      tabBar={(props) => <TabBar {...props} />}
+      // Every tab is mounted up front rather than on first visit. A pager has
+      // to have the next page drawn before the gesture starts — lazily mounting
+      // it means the first swipe drags in a blank, which is the one thing that
+      // would make this worse than tapping.
+      screenOptions={{ lazy: false, sceneStyle: styles.scene }}
+    >
       <Tabs.Screen name="Tonight" component={TonightScreen} options={{ title: 'Tonight' }} />
       <Tabs.Screen name="Modules" component={ModulesNavigator} options={{ title: 'Modules' }} />
       <Tabs.Screen name="You" component={YouNavigator} options={{ title: 'You' }} />
@@ -126,12 +157,44 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
   // saved. Holding the swap keeps the reset screen mounted until it lands.
   const signedIn = !!session && !recovering;
 
+  /**
+   * Whether the first-run walkthrough is still owed. `null` means "not read
+   * yet" — the swap below waits on it rather than guessing, because guessing
+   * `false` would show a frame of Tonight before onboarding replaced it, and
+   * guessing `true` would flash the walkthrough at everybody else.
+   */
+  const [onboarding, setOnboarding] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!signedIn) {
+      setOnboarding(null);
+      return;
+    }
+    let active = true;
+    isOnboardingPending().then((pending) => {
+      if (active) setOnboarding(pending);
+    });
+    return () => {
+      active = false;
+    };
+  }, [signedIn]);
+
+  function finishOnboarding() {
+    // Cleared whether it was walked through or skipped: both mean seen.
+    clearOnboardingPending();
+    setOnboarding(false);
+  }
+
   // A reminder tapped while signed out can't go straight to the session — that
   // route only exists in the signed-in stack. Hold the intent and honour it
   // once a session appears.
   const pendingSession = useRef(false);
 
   const consumePendingSession = useCallback(() => {
+    // Onboarding is its own group, without a `Session` route in it — and
+    // dropping someone into a timed routine mid-walkthrough would be the wrong
+    // answer even if the route existed. The intent is held until they are out.
+    if (onboarding !== false) return;
     if (!pendingSession.current || !signedIn || !navigationRef.isReady()) return;
     pendingSession.current = false;
     // Whichever routine Tonight would have started, not the built-in one — a
@@ -142,7 +205,7 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
         title: routine.name,
       });
     });
-  }, [signedIn, navigationRef]);
+  }, [signedIn, onboarding, navigationRef]);
 
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
@@ -180,8 +243,9 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
   }, [signedIn]);
 
   // Held until the persisted session is read back, so we never flash the sign-in
-  // screen at someone who is already logged in.
-  if (initializing) {
+  // screen at someone who is already logged in — and, once it is, until the
+  // onboarding flag has been read for the same reason.
+  if (initializing || (signedIn && onboarding === null)) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={theme.ember} />
@@ -192,7 +256,21 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme}>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {signedIn ? (
+        {!signedIn ? (
+          <RootStack.Group>
+            <RootStack.Screen name="Auth" component={AuthScreen} />
+            <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          </RootStack.Group>
+        ) : onboarding ? (
+          // A group of its own, so a first run has nowhere else to navigate to
+          // and no back gesture out of the middle of it. Finishing swaps the
+          // whole group for the app below.
+          <RootStack.Group>
+            <RootStack.Screen name="Onboarding">
+              {() => <OnboardingScreen onDone={finishOnboarding} />}
+            </RootStack.Screen>
+          </RootStack.Group>
+        ) : (
           <RootStack.Group>
             <RootStack.Screen name="Tabs" component={TabsNavigator} />
             {/* Timed sessions sit above the tabs so nothing competes for attention. */}
@@ -204,11 +282,6 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
               options={{ presentation: 'modal' }}
             />
           </RootStack.Group>
-        ) : (
-          <RootStack.Group>
-            <RootStack.Screen name="Auth" component={AuthScreen} />
-            <RootStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-          </RootStack.Group>
         )}
       </RootStack.Navigator>
     </NavigationContainer>
@@ -216,6 +289,14 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
 }
 
 const styles = StyleSheet.create({
+  /**
+   * Each tab draws its own gradient ground edge to edge, so the pager's own
+   * surface must never show. Left at its default it is the theme's card colour,
+   * which reads as a pale seam sliding between pages mid-swipe.
+   */
+  scene: {
+    backgroundColor: theme.bg,
+  },
   loading: {
     flex: 1,
     backgroundColor: theme.bg,

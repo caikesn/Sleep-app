@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, ViewStyle } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import { useScreenLoad } from '../screenLoad';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -243,7 +244,7 @@ export default function ModulesScreen() {
   const [routines, setRoutines] = useState<SavedRoutine[]>([]);
   const [tonightsRoutine, setTonightsRoutine] = useState<SavedRoutine | null>(null);
 
-  useFocusEffect(
+  useScreenLoad(
     useCallback(() => {
       let live = true;
       loadProgress().then((p) => live && setHistory(p.history));

@@ -58,11 +58,16 @@ export default function Screen({
   /**
    * Content fades up as the screen mounts. It is one animation defined once,
    * which is the reason it lives here rather than in each screen: the gradient
-   * ground stays put and only what sits on it arrives, so moving between tabs
+   * ground stays put and only what sits on it arrives, so arriving anywhere
    * reads as the light staying on while the contents change.
    *
    * The gradient is deliberately outside it. Fading the background too would
    * flash the app's near-black against whatever is behind it on every mount.
+   *
+   * Tabs no longer use this. They are a pager now, mounted all at once at
+   * launch, so this runs on the three of them before any is looked at and the
+   * movement between them is the page sliding instead. It still carries every
+   * push — the routine list, settings, the builder, a session.
    */
   const enter = useRef(new Animated.Value(0)).current;
 

@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import { useScreenLoad } from '../screenLoad';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Screen from '../components/Screen';
 import Icon, { IconName } from '../components/Icon';
@@ -92,7 +93,7 @@ export default function ProgressScreen() {
   // the badge should still read NEW for the visit that revealed it.
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
 
-  useFocusEffect(
+  useScreenLoad(
     useCallback(() => {
       let active = true;
       loadProgress().then((next) => {

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import { useScreenLoad } from '../screenLoad';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../components/Screen';
@@ -46,21 +47,51 @@ const EVENING_MINUTES = 96;
 /** A burn value never jumps in normal use; this is for reopening the app. */
 const BURN_SETTLE = 500;
 
-/** The flame is drawn at its largest and scaled down — see `Flame`'s `scale`. */
-const FLAME_SIZE = 300;
-const FLAME_SCALE = [1, 100 / FLAME_SIZE] as const;
-
-/** The flame box's height, and how far the image hangs below it. */
-const BOX_HEIGHT = [202, 110] as const;
-const FLAME_DROP = 14;
+/**
+ * The flame, in points of *visible flame* rather than points of image.
+ *
+ * This distinction is the whole reason the mark was too small. `make-icon.mjs`
+ * draws the splash asset with the flame's apex at -0.1875 and its base at
+ * +0.1875 of a unit that is 0.78 of the file's width — so the lit shape is only
+ * `0.375 × 0.78` of the asset, centred, and all the rest of the file is the
+ * bloom it carries on transparency. Sizing the asset therefore understates the
+ * flame by a factor of three: the old 300pt image drew an 88pt flame.
+ */
+const FLAME_BODY = 0.375 * 0.78;
 
 /**
- * The bloom's CSS box is 2.3 flames across and its light dies at 56% of the
- * half-diagonal, so the light itself spans `2.3 * 0.56 * √2` of a flame. Drawn
- * at full size once and scaled with the flame, since the two are the same shape.
+ * How tall the flame stands at the start of the evening and at the end.
+ *
+ * It fills the gap between the eyebrow and the countdown, and it gives up only
+ * about a tenth of that over the whole evening. The wick burning down is told
+ * by the light going out of it — `dim`, the veil and the two glows' peaks — not
+ * by the mark shrinking to a pilot light. A flame that halves is a diagram of
+ * an evening; one that stays and dims is an evening.
  */
-const BLOOM_SIZE = Math.round(FLAME_SIZE * 2.3 * 0.56 * Math.SQRT2);
-const BLOOM_PEAK = [0.19, 0.05] as const;
+const FLAME_HEIGHT = [190, 168] as const;
+
+const FLAME_SIZE = Math.round(FLAME_HEIGHT[0] / FLAME_BODY);
+const FLAME_SCALE = [1, FLAME_HEIGHT[1] / FLAME_HEIGHT[0]] as const;
+
+/** The gap between the flame's base and the countdown beneath it. */
+const FLAME_FOOT = 8;
+
+/**
+ * The flame box's height. It shrinks by less than the flame does, so the base
+ * rides up with the layout while the tip also comes down a little — rather than
+ * the flame appearing to shorten from the bottom, which is not how a wick goes.
+ */
+const BOX_HEIGHT = [202, 186] as const;
+
+/**
+ * The bloom around the flame, as a multiple of the flame's own height, and the
+ * `Glow` box that holds it — whose light dies at 56% of the half-diagonal, so
+ * the lit part spans `0.56 × √2` of the box. Deliberately a tighter multiple
+ * than the old mark had: the flame more than doubled, and a bloom that kept its
+ * old proportion would be wider than the phone.
+ */
+const BLOOM_SIZE = Math.round(FLAME_HEIGHT[0] * 3.4);
+const BLOOM_PEAK = [0.13, 0.028] as const;
 
 /**
  * The pool of light the flame throws on whatever is under it.
@@ -95,12 +126,25 @@ const EMBER_SPECKS: readonly Speck[] = [
   { x: '84%', size: 2, seconds: 14, delay: 3.6 },
 ];
 
-const EMBER_FIELD = { top: 113, height: 230, rise: 190 };
+/** Pinned to the flame's base, the way it was to the old one's. */
+const EMBER_FIELD = { top: BOX_HEIGHT[0] - FLAME_FOOT, height: 230, rise: 190 };
 
 const BURN_BAR = { width: 170, height: 3 };
 
 /** How far the descent's text is held off the rail its stops sit on. */
 const DESCENT_INSET = 34;
+
+/**
+ * One descent row: 15pt of type on its default line box, plus 6pt either side.
+ * The list is given four of them to stand on and grows into whatever the flame
+ * and the week strip leave behind — four being what the old capped list showed,
+ * so a short routine looks exactly as it did.
+ */
+const DESCENT_ROW = 32;
+const DESCENT_MIN_ROWS = 4;
+
+/** The last few points of the list dissolve rather than being cut off. */
+const DESCENT_FADE = 28;
 
 /** The eyebrow row's height before it has been measured, so nothing jumps. */
 const EYEBROW_FALLBACK = 15;
@@ -171,11 +215,14 @@ export default function TonightScreen() {
   const [routine, setRoutine] = useState<SavedRoutine>(builtinRoutine);
   const [clock, setClock] = useState(() => burnedDown(null));
   const [eyebrowHeight, setEyebrowHeight] = useState(EYEBROW_FALLBACK);
+  const [descentView, setDescentView] = useState(0);
+  const [descentContent, setDescentContent] = useState(0);
+  const descentScroll = useRef(new Animated.Value(0)).current;
 
   // Paint from cache immediately so switching tabs never waits on the network,
   // then reconcile with the server in the background — otherwise a fresh
   // install or a second device would show "Anytime" despite a saved reminder.
-  useFocusEffect(
+  useScreenLoad(
     useCallback(() => {
       let active = true;
       const take = (r: Reminders) => {
@@ -271,16 +318,56 @@ export default function TonightScreen() {
    * height with the mark drifting out of them.
    */
   const anchor = insets.top + space.md + eyebrowHeight;
-  const flameCentre = (i: 0 | 1) => BOX_HEIGHT[i] + FLAME_DROP - (FLAME_SIZE * FLAME_SCALE[i]) / 2;
+  /**
+   * The flame's base and its centre, measured down from `anchor`.
+   *
+   * The base is the fixed point — a wick stands on its holder — so it is placed
+   * first and everything else is derived from it. Both are the *flame's*, not
+   * the image's: the asset is over three times the height of what it draws, so
+   * the two differ by more than 200pt at this size.
+   */
+  const flameBase = (i: 0 | 1) => BOX_HEIGHT[i] - FLAME_FOOT;
+  const flameCentre = (i: 0 | 1) => flameBase(i) - FLAME_HEIGHT[i] / 2;
   const flameScale = at(FLAME_SCALE[0], FLAME_SCALE[1]);
 
+  /**
+   * How far the image is pushed down so its *flame* lands on `flameBase`.
+   *
+   * Scaling happens about the image's centre, and the image is mostly empty, so
+   * without this the flame would float wherever the bloom's padding put it.
+   */
+  const flameOffset = (i: 0 | 1) =>
+    (FLAME_SIZE * (1 - FLAME_BODY * FLAME_SCALE[i])) / 2 - FLAME_FOOT;
+
   const litNights = lastNights(WEEK_LENGTH).filter((key) => nights.has(key)).length;
-  const shown = steps.slice(0, 4);
+
+  /**
+   * How much of the routine is still below the fold, as an opacity.
+   *
+   * The two heights are state because they change when the routine does, a
+   * handful of times an evening. The scroll offset is not: it changes sixty
+   * times a second while your thumb is down, so it stays an `Animated.Value`
+   * on the native side and never re-renders this screen at all.
+   */
+  const descentHidden = Math.max(0, descentContent - descentView);
+  const moreAbove = descentScroll.interpolate({
+    inputRange: [0, DESCENT_FADE],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  const moreBelow =
+    descentHidden > 0
+      ? descentScroll.interpolate({
+          inputRange: [Math.max(0, descentHidden - DESCENT_FADE), descentHidden],
+          outputRange: [1, 0],
+          extrapolate: 'clamp',
+        })
+      : 0;
 
   const background = (
     <>
       <Animated.View
-        style={[StyleSheet.absoluteFill, styles.veil, { opacity: at(0, 0.42) }]}
+        style={[StyleSheet.absoluteFill, styles.veil, { opacity: at(0, 0.5) }]}
       />
 
       {/* Centred on the flame's own centre, so the light tracks the mark. */}
@@ -318,10 +405,7 @@ export default function TonightScreen() {
             top: anchor,
             transform: [
               {
-                translateY: at(
-                  flameCentre(0) + (FLAME_SIZE * FLAME_SCALE[0]) / 2 - 34,
-                  flameCentre(1) + (FLAME_SIZE * FLAME_SCALE[1]) / 2 - 34
-                ),
+                translateY: at(flameBase(0), flameBase(1)),
               },
               { translateX: sway.interpolate({ inputRange: [0, 1], outputRange: [-10, 11] }) },
               { scaleY: sway.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.06] }) },
@@ -374,25 +458,19 @@ export default function TonightScreen() {
         <Animated.View
           style={[
             styles.flameHolder,
-            // Scaling happens about the mark's centre, so without this the
-            // flame's feet would climb the screen as it shrank instead of
-            // staying planted on the box's bottom edge.
-            {
-              transform: [
-                {
-                  translateY: at(
-                    (FLAME_SIZE * (1 - FLAME_SCALE[0])) / 2,
-                    (FLAME_SIZE * (1 - FLAME_SCALE[1])) / 2
-                  ),
-                },
-              ],
-            },
+            // Keeps the flame's base on `flameBase` as it shrinks, instead of
+            // letting it climb the screen — scaling is about the image's centre
+            // and the image is far taller than the flame it holds.
+            { transform: [{ translateY: at(flameOffset(0), flameOffset(1)) }] },
           ]}
         >
           <Flame
             size={FLAME_SIZE}
             scale={flameScale}
-            dim={at(1, 0.46)}
+            // The evening is told here rather than in the flame's height. A
+            // quarter of the light left reads as nearly out; a quarter of the
+            // height reads as a different, smaller flame.
+            dim={at(1, 0.26)}
             still={still}
           />
         </Animated.View>
@@ -451,8 +529,10 @@ export default function TonightScreen() {
           style={styles.earnedCard}
           // Named explicitly rather than just switching tabs: the You stack may
           // have been left sitting on Settings, and a badge card must land on
-          // the badge case.
-          onPress={() => navigation.navigate('You', { screen: 'Progress' })}
+          // the badge case. `initial: false` for the same reason as Routines
+          // below — Progress happens to be that stack's home today, so it
+          // changes nothing until the day the order changes.
+          onPress={() => navigation.navigate('You', { screen: 'Progress', initial: false })}
         >
           <View style={styles.earnedIcon}>
             <Icon name={earned.icon} size={20} color={theme.ember} />
@@ -488,15 +568,28 @@ export default function TonightScreen() {
       </View>
 
       <View style={styles.sectionHead}>
-        <Text style={styles.sectionLabel}>THE DESCENT</Text>
+        {/* The count carries what "+ 11 more" used to. A list that shows eight
+            of a stated fifteen is visibly partial, which is the part a fade
+            alone cannot say — it only appears once you have already started
+            scrolling, and the whole problem is knowing to. */}
+        <Text style={styles.sectionLabel}>
+          THE DESCENT{steps.length > 0 && ` · ${steps.length} STEP${steps.length === 1 ? '' : 'S'}`}
+        </Text>
         {/* The routine's name doubles as the way to change it — a separate
-            "Change" link would say less in the same space. */}
+            "Change" link would say less in the same space.
+
+            `initial: false` is load-bearing. Jumping into a tab whose stack has
+            never mounted *builds* that stack from these params, and without it
+            the Modules stack is created holding Routines and nothing else — no
+            ModulesHome underneath. Back then leaves the tab entirely, and since
+            the stack keeps that shape for the rest of the session, the Modules
+            tab can never reach its own home screen again. */}
         <Pressable
           style={styles.changeRow}
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel={`Tonight's routine: ${routine.name}. Change it.`}
-          onPress={() => navigation.navigate('Modules', { screen: 'Routines' })}
+          onPress={() => navigation.navigate('Modules', { screen: 'Routines', initial: false })}
         >
           <Text style={styles.changeText} numberOfLines={1}>
             {routine.name}
@@ -505,32 +598,78 @@ export default function TonightScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.descent}>
-        <LinearGradient
-          colors={[theme.ember, 'rgba(255, 157, 92, 0.35)', 'rgba(255, 157, 92, 0.05)']}
-          locations={[0, 0.4, 1]}
-          style={styles.rail}
-        />
-        {shown.map((step, index) => {
-          const tone = descentTone(index);
-          return (
-            // Keyed by position: a custom routine may use the same stretch twice.
-            <View key={`${step.id}-${index}`} style={styles.descentRow}>
-              <View style={styles.dotRing}>
-                <View style={[styles.dot, { backgroundColor: tone.dot }]} />
+      {/* The descent is the one part of this screen that gives, so it takes the
+          slack the flame and the week strip refuse to. A long routine scrolls
+          inside these bounds rather than growing the page — the flame is a
+          clock hand and the week strip is the foot of the evening, and neither
+          survives being pushed around by how many stretches you picked. */}
+      <View style={styles.descentBox}>
+        {/* `Animated.ScrollView`, not `ScrollView`, and the distinction is not
+            cosmetic: under the native driver `Animated.event` hands back an
+            AnimatedEvent *object* rather than a handler function, and only an
+            Animated component knows to attach it natively instead of calling
+            it. A plain ScrollView calls it, and calling an object throws on
+            the first scroll frame. */}
+        <Animated.ScrollView
+          style={styles.descentScroll}
+          contentContainerStyle={styles.descent}
+          showsVerticalScrollIndicator={false}
+          onLayout={(e) => setDescentView(e.nativeEvent.layout.height)}
+          onContentSizeChange={(_, height) => setDescentContent(height)}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: descentScroll } } }], {
+            useNativeDriver: true,
+          })}
+          scrollEventThrottle={16}
+        >
+          {/* Inside the scroll, so the rail runs the length of the routine
+              rather than the length of the window onto it. */}
+          <LinearGradient
+            colors={[theme.ember, 'rgba(255, 157, 92, 0.35)', 'rgba(255, 157, 92, 0.05)']}
+            locations={[0, 0.4, 1]}
+            style={styles.rail}
+          />
+          {steps.map((step, index) => {
+            const tone = descentTone(index);
+            return (
+              // Keyed by position: a custom routine may use the same stretch twice.
+              <View key={`${step.id}-${index}`} style={styles.descentRow}>
+                <View style={styles.dotRing}>
+                  <View style={[styles.dot, { backgroundColor: tone.dot }]} />
+                </View>
+                <Text style={[styles.descentName, { color: tone.name }]} numberOfLines={1}>
+                  {step.name}
+                </Text>
+                <Text style={styles.descentTime}>
+                  {step.seconds >= 60 ? `${Math.round(step.seconds / 60)}m` : `${step.seconds}s`}
+                </Text>
               </View>
-              <Text style={[styles.descentName, { color: tone.name }]} numberOfLines={1}>
-                {step.name}
-              </Text>
-              <Text style={styles.descentTime}>
-                {step.seconds >= 60 ? `${Math.round(step.seconds / 60)}m` : `${step.seconds}s`}
-              </Text>
-            </View>
-          );
-        })}
-        {steps.length > shown.length && (
-          <Text style={styles.descentMore}>+ {steps.length - shown.length} more</Text>
-        )}
+            );
+          })}
+        </Animated.ScrollView>
+
+        {/* A clipped row is not a signal — it looks like the list ends
+            untidily — so whichever end has more behind it dissolves into the
+            ground instead, and each fade lifts as you reach that end. Both are
+            driven off one natively-animated scroll offset, so dragging the
+            list never re-renders the screen. */}
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.descentFade, styles.descentFadeTop, { opacity: moreAbove }]}
+        >
+          <LinearGradient
+            colors={[theme.bg, 'rgba(20, 16, 12, 0)']}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.descentFade, styles.descentFadeBottom, { opacity: moreBelow }]}
+        >
+          <LinearGradient
+            colors={['rgba(20, 16, 12, 0)', theme.bg]}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
       </View>
 
       <View style={styles.week}>
@@ -594,10 +733,13 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   flameHolder: {
+    // Sits on the box's bottom edge with no offset of its own: `flameOffset`
+    // does all the placing, so there is one number to reason about rather than
+    // two that have to be kept in step.
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: -FLAME_DROP,
+    bottom: 0,
     alignItems: 'center',
   },
   countdown: {
@@ -709,12 +851,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flexShrink: 1,
   },
+  descentBox: {
+    // Takes the slack. `flexBasis` is what the capped list used to occupy, so a
+    // four-step routine is laid out exactly where it always was, and anything
+    // longer grows into the gap above the week strip before it starts
+    // scrolling. It shrinks too: on a short screen the list gets smaller rather
+    // than shoving the week strip off the bottom, which is what a plain
+    // `flex: 1` here would do.
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: DESCENT_ROW * DESCENT_MIN_ROWS,
+  },
+  descentScroll: {
+    // Both are needed. Without `flexGrow` the ScrollView collapses to its
+    // content and the box never bounds it; without `flexShrink` it refuses to
+    // give the box back any height and scrolls nothing.
+    flexGrow: 1,
+    flexShrink: 1,
+  },
   descent: {
     // The rail and the stops on it are absolutely positioned against this box,
     // so it carries no padding: every row is inset by a *margin* instead.
     // Padding and absolute children are the one place Yoga and CSS have
     // historically disagreed, and this list would be visibly wrong if they did.
     position: 'relative',
+  },
+  descentFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: DESCENT_FADE,
+  },
+  descentFadeTop: {
+    top: 0,
+  },
+  descentFadeBottom: {
+    bottom: 0,
   },
   rail: {
     position: 'absolute',
@@ -757,17 +929,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontVariant: ['tabular-nums'],
   },
-  descentMore: {
-    color: theme.textFaint,
-    fontSize: 12,
-    fontWeight: '600',
-    paddingVertical: 6,
-    marginLeft: DESCENT_INSET,
-  },
   week: {
-    // Pushed to the foot of the screen: the evening ends here, and so does the
-    // page. Everything above it keeps its natural height.
-    marginTop: 'auto',
+    // The descent above now absorbs the slack, so this no longer needs
+    // `marginTop: 'auto'` to be pushed down — and keeping it would fight the
+    // list for the same space.
     paddingTop: 14,
     // The tab bar butts straight up against the body, so the strip has to hold
     // itself off it — without this the day letters sit on the bar's top rule.

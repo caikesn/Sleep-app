@@ -13,7 +13,9 @@ import RoutineBuilderScreen from '../screens/RoutineBuilderScreen';
 import StretchLibraryScreen from '../screens/StretchLibraryScreen';
 import MeditationScreen from '../screens/MeditationScreen';
 import AuthScreen from '../screens/AuthScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
 import RedLightTutorialScreen from '../screens/RedLightTutorialScreen';
+import { TabsNavigator } from '../navigation';
 import { AuthProvider } from '../lib/AuthContext';
 import { FIXTURES, ROUTINE_FIXTURES, SETTINGS_FIXTURES, EDITABLE_ROUTINE_ID } from './fixtures';
 
@@ -67,7 +69,28 @@ const SCREENS: Record<
    * seeded, nothing is signed in, and no credentials are ever submitted.
    */
   auth: { component: AuthScreen, needsAuth: true },
+  /**
+   * Shown once, on the one night nobody can go back to, which makes it the
+   * screen most in need of a harness. `onDone` is left off deliberately: the
+   * real one hands it the swap out of the onboarding stack, and here the last
+   * button should do nothing rather than unmount what you came to look at.
+   * Walk it with taps:
+   *
+   *   npm run shoot -- "onboarding:steady@Continue|Continue"
+   */
+  onboarding: { component: OnboardingScreen },
   redlight: { component: RedLightTutorialScreen },
+  /**
+   * The whole tab bar, with all three nested stacks real. Every other entry
+   * here mounts one screen with no navigator around it, which is what makes
+   * them cheap — and also what made moving *between* tabs the one thing the
+   * harness could not look at. Tapping is enough to walk it:
+   *
+   *   npm run shoot -- "tabs:steady@Wind|Back|Modules"
+   *
+   * Needs the provider because Settings sits in the You stack and reads it.
+   */
+  tabs: { component: TabsNavigator, needsAuth: true },
 };
 
 type ScreenName = string;
