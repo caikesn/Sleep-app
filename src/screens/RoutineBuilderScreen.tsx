@@ -43,12 +43,17 @@ function Control({
   label,
   onPress,
   disabled,
+  destructive,
 }: {
   icon: 'up' | 'down' | 'close';
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /** Tints the control, so removing a step doesn't look like a third arrow. */
+  destructive?: boolean;
 }) {
+  const color = disabled ? theme.textFaint : destructive ? theme.danger : theme.textDim;
+
   return (
     <Pressable
       onPress={onPress}
@@ -57,9 +62,13 @@ function Control({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
-      style={({ pressed }) => [styles.control, pressed && !disabled && styles.pressed]}
+      style={({ pressed }) => [
+        styles.control,
+        destructive && styles.controlDestructive,
+        pressed && !disabled && styles.pressed,
+      ]}
     >
-      <Icon name={icon} size={16} color={disabled ? theme.textFaint : theme.textDim} />
+      <Icon name={icon} size={16} color={color} />
     </Pressable>
   );
 }
@@ -99,7 +108,7 @@ function StepRow({
         onPress={() => onMove(1)}
         disabled={last}
       />
-      <Control icon="close" label={`Remove ${step.name}`} onPress={onRemove} />
+      <Control icon="close" label={`Remove ${step.name}`} onPress={onRemove} destructive />
     </View>
   );
 }
@@ -230,6 +239,25 @@ export default function RoutineBuilderScreen({ route, navigation }: Props) {
           ))
         )}
 
+        {editing && (
+          <Pressable
+            // Above the add list, not below it. Sitting under thirty stretches
+            // this was real but unreachable — you had to scroll the entire
+            // catalog past the thing you came here to delete.
+            // Two taps rather than a dialog: react-native-web has no Alert, and
+            // an inline confirm behaves the same on every platform.
+            onPress={() => (confirmingDelete ? void remove() : setConfirmingDelete(true))}
+            accessibilityRole="button"
+            accessibilityLabel={confirmingDelete ? 'Confirm delete routine' : 'Delete routine'}
+            style={({ pressed }) => [styles.deleteRow, pressed && styles.pressed]}
+          >
+            <Icon name="trash" size={16} color={theme.danger} />
+            <Text style={styles.deleteText}>
+              {confirmingDelete ? 'Tap again to delete' : 'Delete routine'}
+            </Text>
+          </Pressable>
+        )}
+
         <Text style={styles.sectionLabel}>ADD A STEP</Text>
         <Chips
           options={CATEGORIES}
@@ -261,21 +289,6 @@ export default function RoutineBuilderScreen({ route, navigation }: Props) {
             ))}
           </View>
         ))}
-
-        {editing && (
-          <Pressable
-            // Two taps rather than a dialog: react-native-web has no Alert, and
-            // an inline confirm behaves the same on every platform.
-            onPress={() => (confirmingDelete ? void remove() : setConfirmingDelete(true))}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.deleteRow, pressed && styles.pressed]}
-          >
-            <Icon name="trash" size={16} color={theme.danger} />
-            <Text style={styles.deleteText}>
-              {confirmingDelete ? 'Tap again to delete' : 'Delete routine'}
-            </Text>
-          </Pressable>
-        )}
       </ScrollView>
     </Screen>
   );
@@ -342,6 +355,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     backgroundColor: theme.bgRaised,
   },
+  controlDestructive: {
+    // A wash rather than a fill — this sits in every step row, and a solid red
+    // square per row would shout louder than anything else on the screen.
+    backgroundColor: 'rgba(255, 92, 71, 0.12)',
+  },
   groupLabel: {
     color: theme.textFaint,
     fontSize: 11,
@@ -387,7 +405,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: space.sm,
-    marginTop: space.xl,
+    marginTop: space.lg,
     paddingVertical: space.md,
   },
   deleteText: {

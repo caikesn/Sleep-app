@@ -12,6 +12,7 @@ import {
   listRoutines,
   getActiveRoutineId,
   setActiveRoutine,
+  deleteRoutine,
 } from '../routines';
 import type { SavedRoutine } from '../routines';
 import type { ModulesStackParamList } from '../navigation';
@@ -78,12 +79,16 @@ export default function RoutinesScreen() {
   const navigation = useNavigation<Nav>();
   const [saved, setSaved] = useState<SavedRoutine[]>([]);
   const [activeId, setActiveId] = useState(BUILTIN_ROUTINE_ID);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Refetched on focus so a routine created or deleted in the builder is
   // reflected the moment you come back to this list.
   useFocusEffect(
     useCallback(() => {
       let active = true;
+      // Coming back to the screen is as good as changing your mind: an armed
+      // delete must never survive a trip away and fire on the next stray tap.
+      setConfirmingDelete(false);
       loadCachedRoutines().then((rows) => active && setSaved(rows));
       getActiveRoutineId().then((id) => active && setActiveId(id));
       listRoutines().then((rows) => active && setSaved(rows));
@@ -99,7 +104,22 @@ export default function RoutinesScreen() {
 
   function choose(id: string) {
     setActiveId(id);
+    // Disarming on every pick, so a confirm armed for one routine can't be
+    // spent on whichever one is selected by the time the second tap lands.
+    setConfirmingDelete(false);
     void setActiveRoutine(id);
+  }
+
+  async function remove() {
+    const id = selected.id;
+    if (id === BUILTIN_ROUTINE_ID) return;
+
+    setConfirmingDelete(false);
+    await deleteRoutine(id);
+    // `deleteRoutine` falls back to the built-in when it deletes tonight's
+    // pick, so the selection is read back rather than assumed.
+    setSaved(await loadCachedRoutines());
+    setActiveId(await getActiveRoutineId());
   }
 
   return (
@@ -107,19 +127,45 @@ export default function RoutinesScreen() {
       title="Routines"
       action={{ label: 'Back', onPress: () => navigation.goBack() }}
       footer={
-        <Button
-          variant="quiet"
-          // The built-in can't be edited, but copying it is a far better start
-          // than an empty list — most custom routines are the default minus a
-          // step or two.
-          label={isBuiltin ? 'Duplicate to edit' : `Edit ${selected.name}`}
-          onPress={() =>
-            navigation.navigate('RoutineBuilder', {
-              routineId: selected.id,
-              duplicate: isBuiltin,
-            })
-          }
-        />
+        <View style={styles.footer}>
+          <Button
+            variant="quiet"
+            // The built-in can't be edited, but copying it is a far better start
+            // than an empty list — most custom routines are the default minus a
+            // step or two.
+            label={isBuiltin ? 'Duplicate to edit' : `Edit ${selected.name}`}
+            onPress={() =>
+              navigation.navigate('RoutineBuilder', {
+                routineId: selected.id,
+                duplicate: isBuiltin,
+              })
+            }
+          />
+          {/* Deleting used to live only at the bottom of the builder, below the
+              whole thirty-stretch add list — reachable, but nobody scrolls that
+              far to throw something away. It belongs next to the routine it
+              acts on. The built-in has no row to delete, so it gets no button. */}
+          {!isBuiltin && (
+            <Pressable
+              // Two taps rather than a dialog, matching the builder:
+              // react-native-web has no Alert, and an inline confirm behaves
+              // the same on every platform.
+              onPress={() => (confirmingDelete ? void remove() : setConfirmingDelete(true))}
+              accessibilityRole="button"
+              accessibilityLabel={
+                confirmingDelete
+                  ? `Confirm delete ${selected.name}`
+                  : `Delete ${selected.name}`
+              }
+              style={({ pressed }) => [styles.deleteRow, pressed && styles.pressed]}
+            >
+              <Icon name="trash" size={16} color={theme.danger} />
+              <Text style={styles.deleteText} numberOfLines={1}>
+                {confirmingDelete ? 'Tap again to delete' : `Delete ${selected.name}`}
+              </Text>
+            </Pressable>
+          )}
+        </View>
       }
     >
       <Text style={styles.subtitle}>
@@ -159,6 +205,24 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingBottom: space.md,
+  },
+  footer: {
+    gap: space.xs,
+  },
+  deleteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.sm,
+    paddingVertical: space.sm + 2,
+  },
+  deleteText: {
+    // Shrinkable so a long routine name truncates instead of shoving the icon
+    // off the row.
+    flexShrink: 1,
+    color: theme.danger,
+    fontSize: 14,
+    fontWeight: '700',
   },
   row: {
     flexDirection: 'row',
