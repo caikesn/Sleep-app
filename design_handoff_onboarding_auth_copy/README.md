@@ -39,6 +39,30 @@ Deliberately left out: the red-light tutorial. It's already reachable from
 Settings and from inside a session; folding it in would make onboarding four
 screens for a tip that isn't essential to night one.
 
+### Added 2026-08-04: a fourth screen, for light
+
+Inserted third, before Tonight — Tonight stays last because "Tonight / *the
+routine's name* / Start" is the close.
+
+4. **Light** — heading "How dark should it get?", the four dim levels, the
+   caption for whichever is selected, and one body line: "The lamp beside you
+   matters more than any of this."
+
+**Why this doesn't contradict the paragraph above it.** What was left out was
+the *tutorial* — a page of written steps for two operating systems — and it is
+still left out. What was added is a *control*, and the reason is different:
+the app now turns your screen brightness down during a session. That is the app
+doing something to your phone, and the place to say so is before the first
+session rather than after someone wonders why the screen went dark.
+
+The body line is the app's own premise stated once, at the only moment someone
+is already thinking about light. It is not a link and not a tip.
+
+**Rejected:** "Wick dims itself while a session runs, so the screen isn't a
+torch." — narrates the feature, which is the exact tell named at the top of
+this file. The levels and their captions already say what happens; the sentence
+was explaining the software instead of speaking from the moment.
+
 ## Why this is worth keeping
 
 Voice regressions are easy to reintroduce — the tutorial-copy instinct is the

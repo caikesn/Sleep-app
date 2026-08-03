@@ -271,6 +271,18 @@ export default function SettingsScreen() {
         <Icon name="chevron" size={18} color={theme.ember} />
       </Pressable>
 
+      <Text style={styles.sectionLabel}>FIRST RUN</Text>
+      {/* The walkthrough is shown once, on a night nobody can go back to. This
+          is the way back to it — and the only way to change the wind-down time
+          and the light level in the order the app first asked for them. */}
+      <Pressable style={styles.linkRow} onPress={() => navigation.navigate('Onboarding')}>
+        <View style={styles.linkText}>
+          <Text style={styles.rowLabel}>See the walkthrough again</Text>
+          <Text style={styles.caption}>The four screens from your first night</Text>
+        </View>
+        <Icon name="chevron" size={18} color={theme.ember} />
+      </Pressable>
+
       <Text style={styles.sectionLabel}>ACCOUNT</Text>
       <View style={styles.card}>
         <Text style={styles.caption}>Signed in as</Text>

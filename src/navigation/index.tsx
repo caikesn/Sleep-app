@@ -281,6 +281,19 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
               component={RedLightTutorialScreen}
               options={{ presentation: 'modal' }}
             />
+            {/*
+              The same screen the first run shows, reachable again from Settings.
+              Safe to declare the name twice because the two groups are mutually
+              exclusive — `onboarding` picks one or the other, never both.
+
+              The difference is what finishing means. On a first run it swaps the
+              whole group for the app; here it is a modal that closes, so the
+              wind-down time and the light level are saved on the way past
+              exactly as they were the first time, and Skip still just leaves.
+            */}
+            <RootStack.Screen name="Onboarding" options={{ presentation: 'modal' }}>
+              {({ navigation: modal }) => <OnboardingScreen onDone={() => modal.goBack()} />}
+            </RootStack.Screen>
           </RootStack.Group>
         )}
       </RootStack.Navigator>
