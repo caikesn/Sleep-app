@@ -20,6 +20,18 @@ import { dirname, join } from 'node:path';
 
 import { encodePng, canvas, toBytes, hex, mix, blend, addLight, smoothstep } from './png.mjs';
 
+/**
+ * The mark's geometry, shared with the app rather than restated here.
+ *
+ * `src/flame.ts` is TypeScript, which Node strips natively — the extension has
+ * to be written out because this is a plain `.mjs` run without the resolution
+ * hook `npm test` uses. Before this import the profile lived in this file alone
+ * and the app drew the PNG it produced, which was fine right up until the app
+ * needed to draw the flame itself; two copies in two languages is the state
+ * this avoids.
+ */
+import { MARK_SCALE, inside as flameInside } from '../src/flame.ts';
+
 const ASSETS = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets');
 
 // Straight from src/theme.ts. Kept as literals rather than imported because
@@ -37,8 +49,10 @@ const WHITE_HOT = hex('#fff3e4');
 // mark looks like a sticker laid on top rather than something lit.
 const EMBER_EDGE = hex('#c9522a');
 
-// --- Geometry, in a unit square centred on the mark -------------------------
-// y runs downwards, matching the pixel buffer, so "apex" is the most negative.
+// --- Colour and light, over the geometry in src/flame.ts --------------------
+// That module owns the silhouette: where the apex and base are, how the sides
+// run, how far the tip leans. What is left here is everything that is about
+// *this* renderer — the bloom, the hot core, and how a pixel gets its colour.
 //
 // The mark is the flame alone. It carried a wick underneath at first and that
 // was a mistake twice over: a flame on a stalk reads as a matchstick or a
@@ -46,54 +60,8 @@ const EMBER_EDGE = hex('#c9522a');
 // not have to be illustrated — what has to survive is one warm light in a
 // large dark field, which is the product in a single image.
 
-const FLAME_APEX = -0.1875;
-const FLAME_WIDEST_Y = 0.0875; // 73% of the way down — low, the way a flame is
-const FLAME_BASE = 0.1875;
-const FLAME_W = 0.072;
-
-/**
- * How far the tip leans off the vertical. Small, and it is not decoration.
- *
- * Two shapes were drawn before this one and both came out as a **water
- * droplet**, which is the single worst thing this mark could evoke. Concave
- * sides alone did not fix it. What actually separates the two is that a drop is
- * perfectly symmetric and fully round at the bottom, and a flame is neither: it
- * pinches where the wick enters it, and it leans, because it is moving.
- */
-const LEAN = 0.03;
-
-/**
- * Half-width down the flame, in two pieces that meet at the widest point with
- * matching zero slope — so there is no kink there.
- *
- * Above: `sin` raised past 1, which is what gives concave sides running to a
- * point. Below: `cos` raised below 1, which holds the width through a round
- * shoulder and then pulls it in sharply to nothing at the base.
- */
-function flameHalfWidth(y) {
-  if (y <= FLAME_APEX || y >= FLAME_BASE) return 0;
-
-  if (y <= FLAME_WIDEST_Y) {
-    const s = (y - FLAME_APEX) / (FLAME_WIDEST_Y - FLAME_APEX);
-    return FLAME_W * Math.pow(Math.sin((s * Math.PI) / 2), 1.9);
-  }
-
-  const u = (y - FLAME_WIDEST_Y) / (FLAME_BASE - FLAME_WIDEST_Y);
-  return FLAME_W * Math.pow(Math.cos((u * Math.PI) / 2), 0.55);
-}
-
-/** The centreline drifts to one side going up; it is straight at the base. */
-function flameCentre(y) {
-  const t = Math.max(0, Math.min(1, (FLAME_WIDEST_Y - y) / (FLAME_WIDEST_Y - FLAME_APEX)));
-  return LEAN * Math.pow(t, 2.2);
-}
-
 /** The hot centre — the bloom radiates from here, not from the mark's centre. */
-const CORE = { x: 0.004, y: 0.04 };
-
-function flameInside(x, y) {
-  return Math.abs(x - flameCentre(y)) <= flameHalfWidth(y);
-}
+const CORE = { x: 0.004, y: 0.02 };
 
 /**
  * Colour of the flame body: white-hot low and central, ember at its edges.
@@ -204,7 +172,10 @@ const OUTPUTS = [
 
   // Splash: transparent, and smaller in frame — it sits on the splash colour
   // from app.json, and a splash mark that fills its box looks like an error.
-  { name: 'splash-icon.png', size: 1024, scale: 0.78 },
+  // `MARK_SCALE`, not a literal: `FLAME_BODY` in `src/flame.ts` is derived from
+  // it, and the app positions the mark by that ratio. A number typed twice here
+  // would put the flame's foot somewhere Tonight does not think it is.
+  { name: 'splash-icon.png', size: 1024, scale: MARK_SCALE },
 
   // Android adaptive icon. The system shows only the centre ~66% and
   // parallaxes the two layers against each other, so the flame belongs to
