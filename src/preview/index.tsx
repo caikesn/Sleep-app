@@ -21,7 +21,13 @@ import RoutineScreen from '../screens/RoutineScreen';
 import { resolveSteps } from '../routineData';
 import { TabsNavigator } from '../navigation';
 import { AuthProvider } from '../lib/AuthContext';
-import { FIXTURES, ROUTINE_FIXTURES, SETTINGS_FIXTURES, EDITABLE_ROUTINE_ID } from './fixtures';
+import {
+  FIXTURES,
+  LIGHTING_FIXTURES,
+  ROUTINE_FIXTURES,
+  SETTINGS_FIXTURES,
+  EDITABLE_ROUTINE_ID,
+} from './fixtures';
 
 /**
  * A development-only harness for looking at one screen in a chosen state.
@@ -156,6 +162,7 @@ export default function Preview({ request }: { request: PreviewRequest }) {
     const rows = FIXTURES[request.fixture] ?? FIXTURES.steady;
     const routines = ROUTINE_FIXTURES[request.fixture] ?? ROUTINE_FIXTURES.steady;
     const settings = SETTINGS_FIXTURES[request.fixture] ?? SETTINGS_FIXTURES.steady;
+    const lighting = LIGHTING_FIXTURES[request.fixture] ?? LIGHTING_FIXTURES.steady;
     // Badges are left unseen on purpose — the NEW treatment is one of the
     // things worth looking at.
     AsyncStorage.multiSet([
@@ -167,6 +174,11 @@ export default function Preview({ request }: { request: PreviewRequest }) {
       ['routines_pending_v1', '[]'],
       ['routines_deleted_v1', '[]'],
       ['active_routine_v1', routines.activeId],
+      // Read by both session screens and by Settings. Nothing here can actually
+      // change the screen's brightness — `screenDim.ts` is a no-op on web — so
+      // what a shot of a dark fixture shows is the warm wash and the banner,
+      // not the dim itself. That part is only checkable on a device.
+      ['lighting_v1', JSON.stringify(lighting)],
     ]).then(() => setReady(true));
   }, [request.fixture]);
 

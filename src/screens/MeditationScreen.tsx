@@ -34,6 +34,9 @@ import {
   stopSoundscape,
 } from '../audio';
 import { logSession } from '../sessions';
+import { type Lighting, DEFAULT_LIGHTING } from '../lighting';
+import { loadLighting } from '../lightingStorage';
+import { useScreenDim } from '../screenDim';
 import type { RootStackParamList } from '../navigation';
 
 type Mode = 'meditation' | 'breathing' | 'reading';
@@ -61,6 +64,29 @@ export default function MeditationScreen({ navigation }: Props) {
 
   const guide = guidedById(guideId);
   const pattern = patternById(patternId) ?? BREATH_PATTERNS[0];
+
+  const [lighting, setLighting] = useState<Lighting>(DEFAULT_LIGHTING);
+
+  useEffect(() => {
+    let active = true;
+    loadLighting().then((saved) => {
+      if (active) setLighting(saved);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /**
+   * Only while it's running. Setup is a page of choices to read — dimming it
+   * would darken the screen at the exact moment someone is picking a guide off
+   * a list, which is the opposite of what the setting is for.
+   *
+   * `'off'` is the way to say "not now" rather than unmounting the hook, so the
+   * brightness is handed back the moment a session ends and not only when the
+   * screen goes.
+   */
+  useScreenDim(stage === 'running' ? lighting.dim : 'off');
 
   // Null until the timer actually starts — backing out of setup or the DND
   // prompt is not a session and must not be logged as an abandoned one.
@@ -117,7 +143,7 @@ export default function MeditationScreen({ navigation }: Props) {
 
   return (
     <LinearGradient
-      colors={stage === 'running' ? gradients.session : gradients.screen}
+      colors={stage === 'running' && lighting.warm ? gradients.session : gradients.screen}
       style={[
         styles.container,
         { paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.md },

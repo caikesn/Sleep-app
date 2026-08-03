@@ -6,8 +6,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Screen from '../components/Screen';
 import Icon from '../components/Icon';
 import NightStrip from '../components/NightStrip';
+import LevelRow from '../components/LevelRow';
 import { theme, space, radius, type } from '../theme';
 import { type Reminders, defaultReminders, loadReminders, saveReminders } from '../storage';
+import { type DimLevel, type Lighting, DEFAULT_LIGHTING, DIM_COPY, DIM_LEVELS, describeDim } from '../lighting';
+import { loadLighting, saveLighting } from '../lightingStorage';
+import { SETTINGS_LINK_COPY, openAccessibilitySettings, openDisplaySettings } from '../systemSettings';
 import {
   type Reminder,
   type ReminderId,
@@ -54,6 +58,7 @@ export default function SettingsScreen() {
   const [reminders, setReminders] = useState<Reminders>(defaultReminders);
   const [picking, setPicking] = useState<ReminderId | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [lighting, setLighting] = useState<Lighting>(DEFAULT_LIGHTING);
 
   useEffect(() => {
     loadReminders().then((r) => {
@@ -61,6 +66,25 @@ export default function SettingsScreen() {
       setLoaded(true);
     });
   }, []);
+
+  useEffect(() => {
+    loadLighting().then(setLighting);
+  }, []);
+
+  /**
+   * Lighting is written straight through, like `commit` above and for the same
+   * reason — but with nothing to schedule and nothing to push, since it never
+   * leaves the device. See `lightingStorage.ts` for why it doesn't.
+   *
+   * Nothing here changes the screen now. The level applies inside a session and
+   * only there, so tapping "Dark" in a lit room at midday does not black out the
+   * screen you are tapping it on.
+   */
+  function commitLighting(patch: Partial<Lighting>) {
+    const next = { ...lighting, ...patch };
+    setLighting(next);
+    saveLighting(next);
+  }
 
   /**
    * Every edit goes through here: state, cache and the OS in one place.
@@ -183,10 +207,66 @@ export default function SettingsScreen() {
       )}
 
       <Text style={styles.sectionLabel}>LIGHT</Text>
+
+      <View style={styles.card}>
+        <Text style={styles.rowLabel}>Screen dim</Text>
+        <Text style={styles.caption}>While a session is running</Text>
+        <View style={styles.levels}>
+          <LevelRow
+            label="Screen dim"
+            options={DIM_LEVELS.map((id) => ({ id, name: DIM_COPY[id].name }))}
+            value={lighting.dim}
+            onChange={(dim: DimLevel) => commitLighting({ dim })}
+          />
+        </View>
+        <Text style={styles.levelCaption}>{describeDim(lighting.dim)}</Text>
+        {lighting.dim !== 'off' && (
+          // The promise this feature lives or dies on, so it is written down
+          // rather than assumed. See `screenDim.ts`.
+          <Text style={styles.cardNote}>Your brightness is put back when the session ends.</Text>
+        )}
+
+        <View style={styles.divider} />
+
+        <View style={styles.head}>
+          <View style={styles.headText}>
+            <Text style={styles.rowLabel}>Warm light</Text>
+            <Text style={styles.caption}>An amber wash over session screens</Text>
+          </View>
+          <Switch
+            value={lighting.warm}
+            onValueChange={(warm) => commitLighting({ warm })}
+            accessibilityLabel="Warm light"
+            trackColor={{ false: theme.cardBorder, true: theme.emberDeep }}
+            thumbColor={lighting.warm ? theme.ember : theme.textFaint}
+          />
+        </View>
+      </View>
+
       <Pressable style={styles.linkRow} onPress={() => navigation.navigate('RedLightTutorial')}>
         <View style={styles.linkText}>
           <Text style={styles.rowLabel}>Setting up red light</Text>
           <Text style={styles.caption}>Real bulbs, and a red filter for your screen</Text>
+        </View>
+        <Icon name="chevron" size={18} color={theme.ember} />
+      </Pressable>
+
+      {/* Neither of these can be switched on from in here — they are system
+          settings, and this is the shortcut to them, not a remote control.
+          What a tap actually reaches differs by platform; the captions say
+          which. See `systemSettings.ts`. */}
+      <Pressable style={[styles.linkRow, styles.linkRowStacked]} onPress={openAccessibilitySettings}>
+        <View style={styles.linkText}>
+          <Text style={styles.rowLabel}>Phone's accessibility settings</Text>
+          <Text style={styles.caption}>{SETTINGS_LINK_COPY.accessibility}</Text>
+        </View>
+        <Icon name="chevron" size={18} color={theme.ember} />
+      </Pressable>
+
+      <Pressable style={[styles.linkRow, styles.linkRowStacked]} onPress={openDisplaySettings}>
+        <View style={styles.linkText}>
+          <Text style={styles.rowLabel}>Phone's display settings</Text>
+          <Text style={styles.caption}>{SETTINGS_LINK_COPY.display}</Text>
         </View>
         <Icon name="chevron" size={18} color={theme.ember} />
       </Pressable>
@@ -288,6 +368,40 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.cardBorder,
     padding: space.lg,
+  },
+  /** Second and subsequent links in a run of them. */
+  linkRowStacked: {
+    marginTop: space.sm,
+  },
+  levels: {
+    marginTop: space.md,
+  },
+  /**
+   * The line that changes as you step through the levels. Sized like a caption
+   * but held one step brighter, because it is the only feedback the control
+   * gives — nothing on this screen actually dims while you set it.
+   */
+  levelCaption: {
+    color: theme.textDim,
+    ...type.label,
+    fontWeight: '400',
+    marginTop: space.sm + 2,
+  },
+  /**
+   * Like `note`, but for one sitting *inside* a card. `note` carries a small
+   * left margin that lines it up with the rounded corner of the card above it;
+   * in here that same margin reads as the line being indented by mistake.
+   */
+  cardNote: {
+    color: theme.textFaint,
+    ...type.label,
+    fontWeight: '400',
+    marginTop: space.xs,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: theme.cardBorder,
+    marginVertical: space.lg,
   },
   linkText: {
     flex: 1,

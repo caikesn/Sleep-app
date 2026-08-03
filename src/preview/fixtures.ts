@@ -4,6 +4,7 @@ import { EVERY_NIGHT, WEEKNIGHTS } from '../reminders';
 import type { RoutinePlan } from '../routineData';
 import { BUILTIN_ROUTINE_ID, stepCatalog } from '../routineData';
 import type { SessionKind } from '../database.types';
+import { type Lighting, DEFAULT_LIGHTING } from '../lighting';
 
 /**
  * Canned session logs for the preview harness.
@@ -166,6 +167,23 @@ export const SETTINGS_FIXTURES: Record<string, Reminders> = {
   steady: pair(windDownIn(48), { nights: WEEKNIGHTS }),
   // Burned out, so the veil is at full strength and the CTA reads "Start anyway".
   veteran: pair(windDownIn(0)),
+};
+
+/**
+ * Lighting, keyed the same way.
+ *
+ * Seeded rather than left to the default so a screenshot is deterministic, and
+ * varied so the two states worth looking at both have a fixture: `empty` is a
+ * fresh account before anything has been chosen, and `veteran` is someone who
+ * has turned the wash off and the dim all the way up — the combination that
+ * leaves the session screen with the least contrast, which is where clipping
+ * and unreadable text would show first.
+ */
+export const LIGHTING_FIXTURES: Record<string, Lighting> = {
+  empty: { ...DEFAULT_LIGHTING },
+  starting: { ...DEFAULT_LIGHTING },
+  steady: { dim: 'dim', warm: true },
+  veteran: { dim: 'dark', warm: false },
 };
 
 /** Keyed by the same fixture names, so one `--fixture` drives every screen. */

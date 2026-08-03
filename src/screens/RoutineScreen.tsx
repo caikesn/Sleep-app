@@ -8,6 +8,9 @@ import { theme, space, radius, gradients } from '../theme';
 import { logSession } from '../sessions';
 import { prepareBells, releaseBells, ring, tick } from '../audio';
 import { buildPhases, phaseIndexForStep, phaseLabel } from '../sessionPlan';
+import { type Lighting, DEFAULT_LIGHTING, DIM_COPY, nextDimLevel } from '../lighting';
+import { loadLighting, saveLighting } from '../lightingStorage';
+import { useScreenDim } from '../screenDim';
 import Pose from '../components/Pose';
 import type { RootStackParamList } from '../navigation';
 
@@ -33,8 +36,46 @@ export default function RoutineScreen({ route, navigation }: Props) {
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(phases[0]?.seconds ?? 0);
   const [paused, setPaused] = useState(false);
-  const [warmLight, setWarmLight] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /**
+   * The saved lighting preferences, editable from the banner below.
+   *
+   * Starts at the default rather than waiting for the read: this screen mounts
+   * with a five-second get-ready already counting, so there is nothing to hold
+   * it for. The warm wash arriving a frame late is a gradient swap on a screen
+   * that is fading in anyway.
+   */
+  const [lighting, setLighting] = useState<Lighting>(DEFAULT_LIGHTING);
+
+  useEffect(() => {
+    let active = true;
+    loadLighting().then((saved) => {
+      if (active) setLighting(saved);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /**
+   * Dims for as long as this screen is up, and puts the brightness back on
+   * every way out of it. See `screenDim.ts` — restoring is the hard half.
+   */
+  useScreenDim(lighting.dim);
+
+  /**
+   * Changes made in here stick.
+   *
+   * Someone reaching for this control at 11pm has just discovered the setting
+   * is wrong, and making them re-discover it tomorrow night would be the app
+   * forgetting something it watched them decide.
+   */
+  function commitLighting(patch: Partial<Lighting>) {
+    const next = { ...lighting, ...patch };
+    setLighting(next);
+    void saveLighting(next);
+  }
 
   const phase = phases[phaseIndex];
   const step = phase?.step ?? steps[0];
@@ -169,7 +210,7 @@ export default function RoutineScreen({ route, navigation }: Props) {
     <LinearGradient
       // The warm-light toggle still swaps the whole ground; it just shifts
       // between two gradients now rather than two flat fills.
-      colors={warmLight ? gradients.session : gradients.screen}
+      colors={lighting.warm ? gradients.session : gradients.screen}
       style={[
         styles.container,
         { paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.md },
@@ -189,9 +230,30 @@ export default function RoutineScreen({ route, navigation }: Props) {
       <View style={styles.lightBanner}>
         <Text style={styles.lightBannerText}>For real red light, turn on your own red lamp</Text>
         <View style={styles.lightBannerRow}>
-          <Pressable style={styles.warmToggle} onPress={() => setWarmLight((v) => !v)}>
-            <Text style={styles.warmToggleText}>{warmLight ? 'Warm light on' : 'Warm light off'}</Text>
+          <Pressable
+            style={styles.warmToggle}
+            onPress={() => commitLighting({ warm: !lighting.warm })}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: lighting.warm }}
+            accessibilityLabel="Warm light"
+          >
+            <Text style={styles.warmToggleText}>
+              {lighting.warm ? 'Warm light on' : 'Warm light off'}
+            </Text>
           </Pressable>
+
+          {/* Cycles rather than opening a picker — four pills would not fit
+              beside the toggle, and every tap here changes the screen you are
+              looking at, so the room is the feedback. See `nextDimLevel`. */}
+          <Pressable
+            style={styles.warmToggle}
+            onPress={() => commitLighting({ dim: nextDimLevel(lighting.dim) })}
+            accessibilityRole="button"
+            accessibilityLabel={`Screen dim, ${DIM_COPY[lighting.dim].name}. Tap to change.`}
+          >
+            <Text style={styles.warmToggleText}>Dim: {DIM_COPY[lighting.dim].name}</Text>
+          </Pressable>
+
           <Pressable onPress={() => navigation.navigate('RedLightTutorial')} hitSlop={8}>
             <Text style={styles.tipsLinkText}>Phone tips →</Text>
           </Pressable>
@@ -294,6 +356,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    // Three controls where there were two. On a narrow phone at a large text
+    // size the link drops to its own line rather than the pills being crushed
+    // to a sliver — the same failure the filter strip had.
+    flexWrap: 'wrap',
+    gap: space.sm,
   },
   warmToggle: {
     paddingVertical: 6,
