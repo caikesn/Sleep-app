@@ -84,6 +84,18 @@ export type VesselSpec = {
    * exactly the same height read as a printed icon rather than as objects.
    */
   stagger?: number;
+  /**
+   * Width at the top as a fraction of the width at the base. 1 is straight
+   * sided; below 1 narrows upward, above 1 flares open.
+   *
+   * This is the one thing the old rounded-rectangle drawing could not do, and
+   * its absence was doing real damage: a *taper* candle that isn't tapered is
+   * just a thin pillar, so two of the catalog's nine silhouettes were lying
+   * about what they were. Glass flares slightly because a votive is a tumbler;
+   * a jar pulls in at the shoulder, which is what separates it from a plain
+   * cylinder now that both are drawn honestly.
+   */
+  taper?: number;
 };
 
 export const VESSELS: Record<Vessel, VesselSpec> = {
@@ -93,15 +105,15 @@ export const VESSELS: Record<Vessel, VesselSpec> = {
   // The two metal ones are taller than a real tealight or tin, on purpose. At
   // true proportions the wax is a four-point bar and the fill has nowhere to
   // travel — you cannot see how far along the badge is, which is the whole job.
-  tealight: { columns: 1, width: 22, gap: 0, height: 8, radius: 2, wall: 10, metal: true },
-  votive: { columns: 1, width: 24, gap: 0, height: 20, radius: 3, wall: 23 },
-  jar: { columns: 1, width: 32, gap: 0, height: 26, radius: 5, wall: 30 },
-  hurricane: { columns: 1, width: 19, gap: 0, height: 37, radius: 3, wall: 41 },
+  tealight: { columns: 1, width: 22, gap: 0, height: 8, radius: 2, wall: 10, metal: true, taper: 1.1 },
+  votive: { columns: 1, width: 24, gap: 0, height: 20, radius: 3, wall: 23, taper: 1.12 },
+  jar: { columns: 1, width: 32, gap: 0, height: 26, radius: 5, wall: 30, taper: 0.93 },
+  hurricane: { columns: 1, width: 19, gap: 0, height: 37, radius: 3, wall: 41, taper: 1.06 },
   tin: { columns: 1, width: 34, gap: 0, height: 16, radius: 3, wall: 18, metal: true },
-  taper: { columns: 1, width: 8, gap: 0, height: 46, radius: 4, saucer: 22 },
-  twin: { columns: 2, width: 8, gap: 9, height: 42, radius: 4, saucer: 32, stagger: 0.13 },
-  pillar: { columns: 1, width: 28, gap: 0, height: 34, radius: 4, saucer: 34 },
-  triple: { columns: 3, width: 7, gap: 7, height: 44, radius: 4, saucer: 40, stagger: 0.15 },
+  taper: { columns: 1, width: 9, gap: 0, height: 46, radius: 4, saucer: 22, taper: 0.6 },
+  twin: { columns: 2, width: 9, gap: 8, height: 42, radius: 4, saucer: 32, stagger: 0.13, taper: 0.62 },
+  pillar: { columns: 1, width: 28, gap: 0, height: 34, radius: 4, saucer: 34, taper: 0.94 },
+  triple: { columns: 3, width: 8, gap: 6, height: 44, radius: 4, saucer: 40, stagger: 0.15, taper: 0.62 },
 };
 
 /**
@@ -136,6 +148,41 @@ export const WICK_HEIGHT = 6;
  */
 export function flameSize(spec: VesselSpec): number {
   return Math.max(15, Math.min(24, spec.width * 1.7));
+}
+
+/**
+ * The height the taper is measured against: the vessel's wall if it has one,
+ * otherwise the wax at a full fill.
+ *
+ * A contained candle's sides are the *glass*, and glass does not change shape as
+ * the wax rises — so its taper has to be read off the wall or a half-full jar
+ * would be drawn narrower than an empty one standing beside it.
+ */
+export function silhouetteHeight(spec: VesselSpec): number {
+  return spec.wall ?? spec.height;
+}
+
+/** Width of the silhouette `y` points above its base. */
+export function widthAt(spec: VesselSpec, y: number): number {
+  const t = Math.max(0, Math.min(1, y / silhouetteHeight(spec)));
+  return spec.width * (1 + ((spec.taper ?? 1) - 1) * t);
+}
+
+/**
+ * Horizontal centre of column `index`, in points from the left of the `BOX`.
+ *
+ * Columns are spaced on their *base* widths, which is what keeps a flared pair
+ * from colliding at the rim and a tapered pair from drifting apart at the foot.
+ */
+export function columnCentre(spec: VesselSpec, index = 0): number {
+  const span = spec.columns * spec.width + (spec.columns - 1) * spec.gap;
+  return (BOX.width - span) / 2 + index * (spec.width + spec.gap) + spec.width / 2;
+}
+
+/** The widest the silhouette gets anywhere, including a flared rim. */
+export function widestPoint(spec: VesselSpec): number {
+  const span = spec.columns * spec.width + (spec.columns - 1) * spec.gap;
+  return Math.max(span + Math.max(0, spec.width * ((spec.taper ?? 1) - 1)), spec.saucer ?? 0);
 }
 
 /** Wax height for column `index`, in points. `fill` is the badge's 0–1 progress. */

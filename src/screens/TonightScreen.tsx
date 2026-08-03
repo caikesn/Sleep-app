@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../components/Screen';
 import Button from '../components/Button';
 import Icon from '../components/Icon';
-import Flame, { FLAME_BODY } from '../components/Flame';
+import Flame, { FLAME_BODY, useFlameSway } from '../components/Flame';
 import Glow from '../components/Glow';
 import Embers, { Speck } from '../components/Embers';
 import WeekStrip, { WEEK_LENGTH } from '../components/WeekStrip';
@@ -283,7 +283,9 @@ export default function TonightScreen() {
   }, [burn, burning]);
 
   const breath = useAmbientLoop(4600, still);
-  const sway = useAmbientLoop(7400, still);
+  // The flame's own wander, so the pool it casts leans when it does. One loop
+  // for both, not two of the same length — see `useFlameSway`.
+  const sway = useFlameSway(still);
   const pulse = useRef(new Animated.Value(0)).current;
 
   // The ring is the one loop here that does not alternate: it leaves the button
@@ -469,6 +471,11 @@ export default function TonightScreen() {
             // height reads as a different, smaller flame.
             dim={at(1, 0.26)}
             still={still}
+            // This screen throws its own bloom, twice over — `BLOOM_SIZE` above
+            // the mark and the cast pool below it, both reading off `burn`. The
+            // mark's built-in one is a fixed fraction of its box and would sit
+            // inside those, still bright, on an evening that has burned out.
+            bloom={false}
             // The same value the cast pool below leans on. They are one light,
             // and on separate loops — 7.8s against 14.8s — they visibly drifted
             // apart, the pool sliding left as the flame leaned right.

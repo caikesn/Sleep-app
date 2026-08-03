@@ -84,6 +84,59 @@ export function useAmbientLoop(halfCycleMs: number, still?: boolean): Animated.V
   return value;
 }
 
+/**
+ * Three ambient loops summed, for something that should wander rather than
+ * oscillate.
+ *
+ * One loop is a metronome. However slow and however softly eased, a single
+ * `useAmbientLoop` spends half of every cycle on one side of its middle, and at
+ * fourteen seconds a cycle that is seven seconds of *sitting there* — which is
+ * precisely how a swaying flame comes to look like a flame stuck to the right.
+ * Summing loops whose periods are not simple ratios of one another gives a
+ * value that keeps moving, keeps changing direction, and does not visibly
+ * repeat, because the combination only comes back into phase after minutes.
+ *
+ * `Animated.add` and `Animated.multiply` both run on the native driver, so the
+ * whole composite is still one value computed off the JS thread — rule three
+ * survives, and this is the only way to get irregular motion that does. The
+ * alternative, re-rolling a target on a JS timer, is a stutter waiting to
+ * happen and would read as a flicker even when it didn't drop a frame.
+ *
+ * The output is re-expanded before it is returned. Three weighted waves rarely
+ * agree, so the raw sum spends its life near the middle and the extremes are
+ * almost never reached; mapping the window it actually occupies back onto 0→1
+ * is what stops the composite being *quieter* than the single loop it replaced.
+ * Clamped rather than extrapolated, so the rare moment they do all agree reads
+ * as the movement reaching its limit instead of overshooting it.
+ */
+export function useDrift(
+  halfCycles: readonly [number, number, number],
+  weights: readonly [number, number, number],
+  still?: boolean
+): Animated.AnimatedInterpolation<number> {
+  const a = useAmbientLoop(halfCycles[0], still);
+  const b = useAmbientLoop(halfCycles[1], still);
+  const c = useAmbientLoop(halfCycles[2], still);
+
+  const sum = Animated.add(
+    Animated.multiply(a, weights[0]),
+    Animated.add(Animated.multiply(b, weights[1]), Animated.multiply(c, weights[2]))
+  );
+
+  return sum.interpolate({
+    inputRange: [DRIFT_WINDOW[0], DRIFT_WINDOW[1]],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+}
+
+/**
+ * The band a three-way sum actually spends its time in, given weights summing
+ * to one. Narrower and the composite sits clamped at its ends; wider and it
+ * never leaves the middle.
+ */
+const DRIFT_WINDOW = [0.22, 0.78] as const;
+
 /** How far a pressed control shrinks. Small — this is felt, not watched. */
 export const PRESS_SCALE = 0.97;
 

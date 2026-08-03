@@ -22,6 +22,23 @@ import path from 'node:path';
  */
 
 const BASE = process.env.PREVIEW_URL ?? 'http://localhost:8081';
+
+/**
+ * How long a screen is left to settle before the first shot, in milliseconds.
+ *
+ * The default lands on the **dark end of every ambient loop**. Anything driven
+ * by `useAmbientLoop` starts at 0, and the glows on Tonight and Modules
+ * interpolate opacity from about 0.45 there — so a default shot shows them at
+ * half strength and they read as broken or missing. Twice that was chased as a
+ * positioning bug and both times it was capture phase.
+ *
+ *     SETTLE=5200 npm run shoot -- tonight:steady
+ *
+ * One half-breath is ~4.6s, so that lands near the top. Overridable rather than
+ * simply raised because five seconds a screen is a slow default for the shots
+ * that have nothing breathing in them, which is most of them.
+ */
+const SETTLE = Number(process.env.SETTLE ?? 600);
 const OUT = '.screenshots';
 const shots = process.argv.slice(2);
 
@@ -110,7 +127,7 @@ for (const shot of shots) {
     await page.waitForFunction(() => document.body.innerText.trim().length > 0, null, {
       timeout: 120_000,
     });
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(SETTLE);
 
     for (const tap of taps) {
       // Substring match on visible text: these are button labels as a person

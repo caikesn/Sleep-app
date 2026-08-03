@@ -1,28 +1,57 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Defs, Ellipse, LinearGradient, Path, Stop } from 'react-native-svg';
 import Flame from './Flame';
 import Glow from './Glow';
 import { EMBER_RGB } from '../theme';
-import { BOX, VESSELS, WICK_HEIGHT, flameSize, waxHeight, type Vessel, type Wax } from '../candles';
+import {
+  BOX,
+  VESSELS,
+  WICK_HEIGHT,
+  columnCentre,
+  flameSize,
+  waxHeight,
+  widthAt,
+  type Vessel,
+  type Wax,
+} from '../candles';
 
 /**
  * A badge, drawn as a candle that fills with wax and lights when it's earned.
  *
- * Everything here is plain Views and one linear gradient. `react-native-svg` is
- * still not a dependency — see `Flame.tsx` — and a candle is a stack of
- * rectangles with rounded ends, which is the one shape that argument survives.
- * The two things a vector would buy, a tapered vessel and a drawn flame, are
- * covered instead by the glass overlay and by reusing the Wick mark itself.
+ * **This is now vector.** The file used to say `react-native-svg` was not a
+ * dependency and that a candle is a stack of rounded rectangles, which is the
+ * one shape that argument survives — and that was true right up until the
+ * catalog contained a *taper*. A taper candle that doesn't taper is a thin
+ * pillar, and the glass was being faked by an overlay because a rectangle has no
+ * way to open out at the rim. Two of nine silhouettes were lying about what they
+ * were, and no amount of `borderRadius` was going to fix either.
  *
- * The flame is `Flame`, not a new shape: the app's mark *is* a flame, and the
- * moment a badge lights is the one place a candle and the logo should agree.
- * It brings its own breath and sway, so a shelf of earned candles is alive
- * without this file animating anything.
+ * The dependency stays confined to what a vector actually buys:
  *
- * Nothing here animates on progress. Wax height is laid out, not driven — the
- * badge grid is thirteen tiles deep and thirteen simultaneous fill animations
- * in peripheral vision at bedtime is precisely what `motion.ts` exists to stop.
+ * - **Sides that aren't parallel.** `taper` in `candles.ts` is now drawn rather
+ *   than implied — see `widthAt`.
+ * - **A wax top that is an ellipse, not a bar.** The old 1.5pt meniscus was a
+ *   flat highlight sitting on a flat cut. Wax has a melt pool, and a pool is the
+ *   thing you see when you look down into a candle at all. The same `DOME`
+ *   drives the vessel's rim, so the glass and the wax agree about where the
+ *   viewer's eye is; two ellipses at different squashes read as two objects
+ *   photographed separately and pasted together.
+ *
+ * What it explicitly does not do: `Glow` and `Embers` stay as they are. Their
+ * stacked-circle falloff is not a workaround waiting for SVG — an SVG radial
+ * gradient bands differently on web than on native, and `Glow`'s own note
+ * explains why the constant-alpha stack has no seams to hide. A vector is the
+ * right tool for an edge, not for a bloom.
+ *
+ * The flame is still `Flame`, a react-native View laid over the drawing rather
+ * than a path inside it: the app's mark *is* a flame, the moment a badge lights
+ * is the one place a candle and the logo should agree, and the mark carries a
+ * baked bloom on transparency that nothing here should try to redraw.
+ *
+ * Nothing animates on progress. Wax height is laid out, not driven — the badge
+ * grid is thirteen tiles deep and thirteen simultaneous fill animations in
+ * peripheral vision at bedtime is precisely what `motion.ts` exists to stop.
  * The fill is a fact you notice, not an event you watch.
  */
 
@@ -65,6 +94,73 @@ const SAUCER_HEIGHT = 3;
 /** Fraction of the mark's box that is transparent below the flame. Measured. */
 const FLAME_SINK = 0.34;
 
+/**
+ * How squashed every ellipse is, as a fraction of its own half-width.
+ *
+ * This is the viewing angle, and it is one number on purpose: a pool, a rim and
+ * a saucer at three different squashes are three objects seen from three
+ * heights. Low, because the grid is looked at from the side — enough to say the
+ * top is open, not enough to turn a badge into a diagram of a cylinder.
+ */
+const DOME = 0.16;
+
+/** Line weight for glass and metal, in points at `size` 1. */
+const STROKE = 0.6;
+
+/** How far inside the vessel the wax sits, per side. Glass has thickness. */
+const WALL_INSET = 1;
+
+/** Geometry for one drawn body: a tapered column standing on `base`. */
+type Body = {
+  /** Horizontal centre. */
+  cx: number;
+  /** Baseline, in y-down points from the top of the `BOX`. */
+  base: number;
+  height: number;
+  bottomWidth: number;
+  topWidth: number;
+  radius: number;
+};
+
+/**
+ * A tapered column with a domed top and rounded feet, as a closed path.
+ *
+ * The top arc is the *far* rim — the edge of the opening that is furthest from
+ * the viewer, which is what a slightly-raised eye sees as the highest point of a
+ * round top. Drawing the shape's top edge as a straight line and adding an
+ * ellipse over it puts the ellipse's upper half outside the silhouette, and the
+ * candle grows a lip.
+ */
+function bodyPath({ cx, base, height, bottomWidth, topWidth, radius }: Body): string {
+  const hb = bottomWidth / 2;
+  const ht = topWidth / 2;
+  const top = base - height;
+  const dome = ht * DOME;
+  const r = Math.max(0, Math.min(radius, hb, height / 2));
+
+  return [
+    `M ${cx - hb} ${base - r}`,
+    `L ${cx - ht} ${top}`,
+    `A ${ht} ${dome} 0 0 1 ${cx + ht} ${top}`,
+    `L ${cx + hb} ${base - r}`,
+    `A ${r} ${r} 0 0 1 ${cx + hb - r} ${base}`,
+    `L ${cx - hb + r} ${base}`,
+    `A ${r} ${r} 0 0 1 ${cx - hb} ${base - r}`,
+    'Z',
+  ].join(' ');
+}
+
+/**
+ * A wick, as a stroke with a slight bend in it.
+ *
+ * Straight, it is a two-point bar and reads as a staple. The bend is the whole
+ * difference between a piece of string and a tick mark, and it leans the same
+ * way the Wick mark does so a lit badge doesn't argue with its own flame.
+ */
+function wickPath(cx: number, top: number, height: number): string {
+  return `M ${cx} ${top} Q ${cx + height * 0.16} ${top - height * 0.6} ${cx + height * 0.09} ${top - height}`;
+}
+
 export default function Candle({ vessel, wax, fill, lit, size = 1, still, style }: Props) {
   const spec = VESSELS[vessel];
   const u = (n: number) => n * size;
@@ -72,6 +168,46 @@ export default function Candle({ vessel, wax, fill, lit, size = 1, still, style 
   const [waxTop, waxBottom] = wax;
   const flame = u(flameSize(spec));
   const glowSize = flame * 2.4;
+
+  // React's own ids carry colons, which are legal in an `id` attribute and
+  // legal inside `url(#…)` but not in a CSS selector — cheap to strip, and the
+  // failure it prevents is invisible until there are two candles on screen: on
+  // web every `<Svg>` is real DOM, so thirteen badges sharing one gradient id
+  // would all paint themselves the colour of whichever badge rendered first.
+  const gradient = `wax-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+
+  /** Everything stands on the dish if there is one, not on the floor. */
+  const base = BOX.height - (spec.saucer !== undefined ? SAUCER_HEIGHT : 0);
+
+  const columns = Array.from({ length: spec.columns }, (_, i) => {
+    const height = waxHeight(spec, fill, i);
+    const cx = columnCentre(spec, i);
+    const inset = spec.wall !== undefined ? WALL_INSET : 0;
+
+    return {
+      cx,
+      height,
+      /** Top of the wax, in y-down points. */
+      top: base - height,
+      body: {
+        cx,
+        base: base - (spec.wall !== undefined ? STROKE / 2 : 0),
+        height,
+        bottomWidth: spec.width - inset * 2,
+        topWidth: widthAt(spec, height) - inset * 2,
+        radius: spec.radius,
+      } satisfies Body,
+    };
+  });
+
+  const wall =
+    spec.wall === undefined
+      ? undefined
+      : {
+          height: spec.wall,
+          top: base - spec.wall,
+          halfTop: widthAt(spec, spec.wall) / 2,
+        };
 
   return (
     <View
@@ -81,132 +217,140 @@ export default function Candle({ vessel, wax, fill, lit, size = 1, still, style 
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       pointerEvents="none"
-      style={[{ width: u(BOX.width), height: u(BOX.height) }, styles.root, style]}
+      style={[{ width: u(BOX.width), height: u(BOX.height) }, style]}
     >
-      <View style={[styles.columns, { gap: u(spec.gap) }]}>
-        {Array.from({ length: spec.columns }, (_, i) => {
-          const height = waxHeight(spec, fill, i);
-          const wickBase = u(height);
+      {/* One viewport for the whole drawing, so the geometry above is written
+          in the same points `candles.ts` quotes and `size` only scales the
+          viewBox. The old drawing multiplied every literal by `size` by hand. */}
+      <Svg
+        width={u(BOX.width)}
+        height={u(BOX.height)}
+        viewBox={`0 0 ${BOX.width} ${BOX.height}`}
+        style={StyleSheet.absoluteFill}
+      >
+        <Defs>
+          {/* Bounding-box units, so one definition serves every column and each
+              gets the full ramp over its own height — a shared user-space
+              gradient would leave a short staggered column entirely in the
+              shadowed end. */}
+          <LinearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={waxTop} />
+            <Stop offset="1" stopColor={waxBottom} />
+          </LinearGradient>
+        </Defs>
+
+        {/* Before the columns: a dish is under the candle standing on it. */}
+        {spec.saucer !== undefined && (
+          <Ellipse
+            cx={BOX.width / 2}
+            cy={BOX.height - SAUCER_HEIGHT / 2}
+            rx={spec.saucer / 2}
+            ry={SAUCER_HEIGHT / 2}
+            fill={SAUCER}
+          />
+        )}
+
+        {columns.map((column, i) => {
+          const halfPool = column.body.topWidth / 2;
+          const wickHeight = WICK_HEIGHT - (lit ? 2 : 0);
+
+          return (
+            <React.Fragment key={i}>
+              <Path d={bodyPath(column.body)} fill={`url(#${gradient})`} />
+
+              {/* The pool, drawn whole: its upper half lands exactly on the
+                  body's top arc and its lower half is the near rim, which is
+                  the part that says this is a surface rather than a cut. */}
+              <Ellipse
+                cx={column.cx}
+                cy={column.top}
+                rx={halfPool}
+                ry={halfPool * DOME}
+                fill={MENISCUS}
+              />
+
+              <Path
+                d={wickPath(column.cx, column.top, wickHeight)}
+                stroke={lit ? WICK_LIT : WICK}
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                fill="none"
+              />
+            </React.Fragment>
+          );
+        })}
+
+        {/* After the wax, and translucent: glass in front of what it holds. The
+            wall keeps the silhouette whatever the fill is, which is the reason
+            a contained badge is legible when it's empty. */}
+        {wall !== undefined && (
+          <>
+            <Path
+              d={bodyPath({
+                cx: BOX.width / 2,
+                base: base - STROKE / 2,
+                height: wall.height,
+                bottomWidth: spec.width,
+                topWidth: wall.halfTop * 2,
+                radius: spec.radius + 1,
+              })}
+              fill={spec.metal ? METAL_FILL : GLASS_FILL}
+              stroke={spec.metal ? METAL_EDGE : GLASS_EDGE}
+              strokeWidth={STROKE}
+            />
+            {/* The near rim. Without it the opening is a filled arc and the
+                vessel reads as solid — a lozenge of tinted glass, not a cup. */}
+            <Ellipse
+              cx={BOX.width / 2}
+              cy={wall.top}
+              rx={wall.halfTop}
+              ry={wall.halfTop * DOME}
+              fill="none"
+              stroke={spec.metal ? RIM : GLASS_EDGE}
+              strokeWidth={STROKE}
+            />
+          </>
+        )}
+      </Svg>
+
+      {/* The flame is not part of the drawing: it is the app's mark, an image
+          with its own bloom and its own breath, laid over the top. */}
+      {lit &&
+        columns.map((column, i) => {
           // The mark is a square image with the flame floating in the middle of
           // it, so sitting its *box* on the wick leaves the flame hovering an
           // eighth of an inch above the candle. Sink it by the transparent
           // margin underneath instead, and the flame stands on the wick.
-          const flameBottom = wickBase + u(WICK_HEIGHT) - flame * FLAME_SINK;
+          // Measured off the full `WICK_HEIGHT`, not the shortened lit one, so
+          // lighting a badge doesn't drop the flame two points.
+          const bottom = u(BOX.height - column.top + WICK_HEIGHT) - flame * FLAME_SINK;
 
           return (
-            <View
-              key={i}
-              style={{
-                width: u(spec.width),
-                // A container keeps its silhouette however empty it is; a
-                // freestanding candle is only as tall as its wax.
-                height: u(spec.wall ?? height),
-                justifyContent: 'flex-end',
-              }}
-            >
-              <LinearGradient
-                colors={[waxTop, waxBottom]}
-                style={{ height: wickBase, borderRadius: u(spec.radius) }}
-              />
-
-              {/* The pool at the top, lit from the wick above it. Drawn as a
-                  white overlay rather than a third gradient stop so it reads
-                  the same on ivory wax and on plum. */}
-              <View
+            <React.Fragment key={i}>
+              <Glow
+                size={glowSize}
+                peak={0.2}
+                color={EMBER_RGB}
                 style={{
-                  position: 'absolute',
-                  bottom: wickBase - u(1.5),
-                  left: 0,
-                  right: 0,
-                  height: u(1.5),
-                  borderRadius: u(1.5),
-                  backgroundColor: MENISCUS,
+                  left: u(column.cx) - glowSize / 2,
+                  bottom: bottom + flame / 2 - glowSize / 2,
                 }}
               />
-
-              {spec.wall !== undefined && (
-                <View
-                  style={[
-                    StyleSheet.absoluteFillObject,
-                    {
-                      borderRadius: u(spec.radius + 1),
-                      borderWidth: StyleSheet.hairlineWidth,
-                      backgroundColor: spec.metal ? METAL_FILL : GLASS_FILL,
-                      borderColor: spec.metal ? METAL_EDGE : GLASS_EDGE,
-                    },
-                  ]}
-                >
-                  {spec.metal && (
-                    <View style={{ height: u(1.5), borderRadius: u(1.5), backgroundColor: RIM }} />
-                  )}
-                </View>
-              )}
-
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: wickBase,
-                  alignSelf: 'center',
-                  width: Math.max(1.5, u(2)),
-                  height: u(lit ? WICK_HEIGHT - 2 : WICK_HEIGHT),
-                  borderRadius: u(1),
-                  backgroundColor: lit ? WICK_LIT : WICK,
-                }}
+              <Flame
+                size={flame}
+                still={still}
+                // The `Glow` above is this flame's bloom, sized to the candle
+                // rather than to the mark's own box.
+                bloom={false}
+                // No lean at this size. The flame is standing on a wick two
+                // points wide, and any horizontal travel at all reads as it
+                // sliding off rather than as a draught.
+                sway={false}
+                style={{ position: 'absolute', left: u(column.cx) - flame / 2, bottom }}
               />
-
-              {lit && (
-                <>
-                  <Glow
-                    size={glowSize}
-                    peak={0.2}
-                    color={EMBER_RGB}
-                    style={{
-                      left: (u(spec.width) - glowSize) / 2,
-                      bottom: flameBottom + flame / 2 - glowSize / 2,
-                    }}
-                  />
-                  <Flame
-                    size={flame}
-                    still={still}
-                    // No lean at this size. The flame is standing on a wick two
-                    // points wide, and any horizontal travel at all reads as it
-                    // sliding off rather than as a draught.
-                    sway={false}
-                    style={{ position: 'absolute', alignSelf: 'center', bottom: flameBottom }}
-                  />
-                </>
-              )}
-            </View>
+            </React.Fragment>
           );
         })}
-      </View>
-
-      {/* After the columns, not before: this is a flex column aligned to the
-          bottom, so the dish has to be the last child or it stacks on top of
-          the candle it is supposed to be under. */}
-      {spec.saucer !== undefined && (
-        <View
-          style={{
-            width: u(spec.saucer),
-            height: u(SAUCER_HEIGHT),
-            borderRadius: u(SAUCER_HEIGHT),
-            backgroundColor: SAUCER,
-          }}
-        />
-      )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    alignItems: 'center',
-    // Bottom-aligned: candles stand on a surface, and a grid of them has to
-    // share one. The spare height at the top is the flame's room.
-    justifyContent: 'flex-end',
-  },
-  columns: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-});
