@@ -4,6 +4,7 @@ import { supabase } from './supabase';
 import { clearLocalCache } from '../storage';
 import { clearSessionCache } from '../sessions';
 import { clearRoutineCache } from '../routines';
+import { clearOnboardingPending } from '../onboarding';
 
 type AuthState = {
   session: Session | null;
@@ -85,6 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await clearLocalCache();
         await clearSessionCache();
         await clearRoutineCache();
+        // An unfinished walkthrough belongs to the account that was created, not
+        // to the device — without this, the next person to sign in here gets it.
+        await clearOnboardingPending();
       },
 
       async sendRecoveryCode(email) {

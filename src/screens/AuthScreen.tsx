@@ -14,6 +14,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme, space, gradients } from '../theme';
 import { useAuth } from '../lib/AuthContext';
+import { markOnboardingPending } from '../onboarding';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import Flame from '../components/Flame';
@@ -47,9 +48,15 @@ export default function AuthScreen() {
     } else {
       const { error, needsConfirmation } = await signUp(email, password);
       if (error) setError(error);
-      else if (needsConfirmation) {
-        setNotice('Check your email for a confirmation link, then sign in.');
-        setMode('signIn');
+      else {
+        // Night one starts here rather than at the next sign-in: the flag is
+        // written on the device, so it survives the trip out to the
+        // confirmation email and back.
+        await markOnboardingPending();
+        if (needsConfirmation) {
+          setNotice('Check your email for a confirmation link, then sign in.');
+          setMode('signIn');
+        }
       }
     }
     setBusy(false);
@@ -76,8 +83,8 @@ export default function AuthScreen() {
         <Text style={styles.title}>{mode === 'signIn' ? 'Welcome back' : 'Create an account'}</Text>
         <Text style={styles.subtitle}>
           {mode === 'signIn'
-            ? 'Sign in to pick up your routines and history.'
-            : 'Your routines and history sync across your devices.'}
+            ? 'Pick up where you left off.'
+            : 'Everything you build stays with you.'}
         </Text>
 
         <View style={styles.form}>
