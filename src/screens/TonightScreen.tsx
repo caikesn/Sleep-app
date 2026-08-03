@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Screen from '../components/Screen';
 import Button from '../components/Button';
 import Icon from '../components/Icon';
-import Flame from '../components/Flame';
+import Flame, { FLAME_BODY } from '../components/Flame';
 import Glow from '../components/Glow';
 import Embers, { Speck } from '../components/Embers';
 import WeekStrip, { WEEK_LENGTH } from '../components/WeekStrip';
@@ -48,16 +48,12 @@ const EVENING_MINUTES = 96;
 const BURN_SETTLE = 500;
 
 /**
- * The flame, in points of *visible flame* rather than points of image.
- *
- * This distinction is the whole reason the mark was too small. `make-icon.mjs`
- * draws the splash asset with the flame's apex at -0.1875 and its base at
- * +0.1875 of a unit that is 0.78 of the file's width — so the lit shape is only
- * `0.375 × 0.78` of the asset, centred, and all the rest of the file is the
- * bloom it carries on transparency. Sizing the asset therefore understates the
- * flame by a factor of three: the old 300pt image drew an 88pt flame.
+ * The flame is measured here in points of *visible flame* rather than points of
+ * image, which is the whole reason the mark was once too small: the asset is
+ * over three times the height of what it draws, so sizing the file understates
+ * the flame by a factor of three and the old 300pt image drew an 88pt flame.
+ * `FLAME_BODY` is the ratio, and it lives with the asset in `Flame.tsx`.
  */
-const FLAME_BODY = 0.375 * 0.78;
 
 /**
  * How tall the flame stands at the start of the evening and at the end.
@@ -472,6 +468,10 @@ export default function TonightScreen() {
             // height reads as a different, smaller flame.
             dim={at(1, 0.26)}
             still={still}
+            // The same value the cast pool below leans on. They are one light,
+            // and on separate loops — 7.8s against 14.8s — they visibly drifted
+            // apart, the pool sliding left as the flame leaned right.
+            lean={sway}
           />
         </Animated.View>
       </View>

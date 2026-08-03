@@ -15,6 +15,7 @@ import MeditationScreen from '../screens/MeditationScreen';
 import AuthScreen from '../screens/AuthScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import RedLightTutorialScreen from '../screens/RedLightTutorialScreen';
+import CandleSheet from './CandleSheet';
 import { TabsNavigator } from '../navigation';
 import { AuthProvider } from '../lib/AuthContext';
 import { FIXTURES, ROUTINE_FIXTURES, SETTINGS_FIXTURES, EDITABLE_ROUTINE_ID } from './fixtures';
@@ -80,6 +81,13 @@ const SCREENS: Record<
    */
   onboarding: { component: OnboardingScreen },
   redlight: { component: RedLightTutorialScreen },
+  /**
+   * Not a screen — the badge candles laid out for design work. The only entry
+   * here that doesn't exist in the app, and it earns that by being the only way
+   * to see all thirteen at a fill of your choosing rather than at whatever fill
+   * the fixture's log happens to produce.
+   */
+  candles: { component: CandleSheet },
   /**
    * The whole tab bar, with all three nested stacks real. Every other entry
    * here mounts one screen with no navigator around it, which is what makes

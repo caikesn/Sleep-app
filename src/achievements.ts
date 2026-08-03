@@ -1,5 +1,6 @@
 import { computeStreak, longestStreak, nightOf, NIGHT_CUTOFF_HOUR } from './streak';
 import type { IconName } from './components/Icon';
+import type { Vessel, WaxName } from './candles';
 
 /**
  * Stats and badges.
@@ -87,6 +88,10 @@ export type Badge = {
   name: string;
   detail: string;
   icon: IconName;
+  /** The candle's silhouette. See `candles.ts`. */
+  vessel: Vessel;
+  /** Its wax, by palette name. */
+  wax: WaxName;
   target: number;
   measure: (stats: Stats) => number;
 };
@@ -103,6 +108,18 @@ export type BadgeState = Badge & {
  *
  * Streak badges read `bestStreak`, so a missed night dims the streak on Tonight
  * but never takes a badge back.
+ *
+ * Every badge is also a candle, which fills with wax as you approach it and
+ * lights when you earn it. Three families run through the vessels, so the case
+ * can be read at a glance before any of the names are:
+ *
+ * - **Session counts grow.** tealight → votive → jar → pillar.
+ * - **Streaks gain flames.** one taper → two → three, and a month becomes a
+ *   storm lantern: the streak that doesn't blow out.
+ * - **Total time comes in tins.** A small one for an hour, bronze for ten.
+ *
+ * No two badges share both a vessel and a wax, which is the rule that keeps
+ * repeats legible — colour is doing real work here, not decoration.
  */
 export const BADGES: Badge[] = [
   {
@@ -110,6 +127,9 @@ export const BADGES: Badge[] = [
     name: 'First night',
     detail: 'Finish your first wind-down',
     icon: 'award',
+    // The smallest candle there is, for the smallest thing you can do.
+    vessel: 'tealight',
+    wax: 'ivory',
     target: 1,
     measure: (s) => s.sessions,
   },
@@ -118,6 +138,8 @@ export const BADGES: Badge[] = [
     name: 'Three in a row',
     detail: 'Wind down three nights running',
     icon: 'streak',
+    vessel: 'taper',
+    wax: 'honey',
     target: 3,
     measure: (s) => s.bestStreak,
   },
@@ -126,6 +148,8 @@ export const BADGES: Badge[] = [
     name: 'Ten nights',
     detail: 'Finish ten sessions',
     icon: 'star',
+    vessel: 'votive',
+    wax: 'amber',
     target: 10,
     measure: (s) => s.sessions,
   },
@@ -134,6 +158,8 @@ export const BADGES: Badge[] = [
     name: 'An hour of quiet',
     detail: 'Spend an hour winding down',
     icon: 'clock',
+    vessel: 'tin',
+    wax: 'sand',
     target: 60,
     measure: (s) => s.minutes,
   },
@@ -142,6 +168,8 @@ export const BADGES: Badge[] = [
     name: 'A full week',
     detail: 'Seven nights running',
     icon: 'streak',
+    vessel: 'twin',
+    wax: 'ember',
     target: 7,
     measure: (s) => s.bestStreak,
   },
@@ -150,6 +178,10 @@ export const BADGES: Badge[] = [
     name: 'Well rounded',
     detail: 'Try a routine, a stretch and a meditation',
     icon: 'layers',
+    // Three candles for three disciplines — the one place the count in the
+    // holder means something on its own.
+    vessel: 'triple',
+    wax: 'rose',
     target: 3,
     measure: (s) => s.kinds,
   },
@@ -158,6 +190,8 @@ export const BADGES: Badge[] = [
     name: 'Night owl',
     detail: 'Finish a session after midnight',
     icon: 'rest',
+    vessel: 'hurricane',
+    wax: 'plum',
     target: 1,
     measure: (s) => s.afterMidnight,
   },
@@ -166,6 +200,8 @@ export const BADGES: Badge[] = [
     name: 'Lights out early',
     detail: 'Finish five sessions before 10pm',
     icon: 'sunset',
+    vessel: 'votive',
+    wax: 'cream',
     target: 5,
     measure: (s) => s.earlyNights,
   },
@@ -174,6 +210,8 @@ export const BADGES: Badge[] = [
     name: 'Twenty-five nights',
     detail: 'Finish twenty-five sessions',
     icon: 'star',
+    vessel: 'jar',
+    wax: 'terracotta',
     target: 25,
     measure: (s) => s.sessions,
   },
@@ -182,6 +220,8 @@ export const BADGES: Badge[] = [
     name: 'A fortnight',
     detail: 'Fourteen nights running',
     icon: 'streak',
+    vessel: 'pillar',
+    wax: 'amber',
     target: 14,
     measure: (s) => s.bestStreak,
   },
@@ -190,6 +230,8 @@ export const BADGES: Badge[] = [
     name: 'Ten hours down',
     detail: 'Ten hours of wind-down in total',
     icon: 'clock',
+    vessel: 'tin',
+    wax: 'bronze',
     target: 600,
     measure: (s) => s.minutes,
   },
@@ -198,6 +240,8 @@ export const BADGES: Badge[] = [
     name: 'A month straight',
     detail: 'Thirty nights running',
     icon: 'streak',
+    vessel: 'hurricane',
+    wax: 'ember',
     target: 30,
     measure: (s) => s.bestStreak,
   },
@@ -206,6 +250,8 @@ export const BADGES: Badge[] = [
     name: 'A hundred nights',
     detail: 'Finish a hundred sessions',
     icon: 'award',
+    vessel: 'pillar',
+    wax: 'gold',
     target: 100,
     measure: (s) => s.sessions,
   },

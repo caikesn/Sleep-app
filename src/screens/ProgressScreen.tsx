@@ -6,6 +6,9 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Screen from '../components/Screen';
 import Icon, { IconName } from '../components/Icon';
 import WeekStrip from '../components/WeekStrip';
+import Candle from '../components/Candle';
+import { WAX } from '../candles';
+import { useReduceMotion } from '../reduceMotion';
 import { theme, space, radius } from '../theme';
 import { formatTotal } from '../format';
 import { nightDate, nightOf, addDays } from '../streak';
@@ -52,17 +55,23 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-function BadgeTile({ badge, isNew }: { badge: BadgeState; isNew: boolean }) {
+function BadgeTile({ badge, isNew, still }: { badge: BadgeState; isNew: boolean; still: boolean }) {
   const { earned, value, target } = badge;
 
   return (
     <View style={[styles.badge, earned && styles.badgeEarned]}>
-      <View style={[styles.badgeIcon, earned && styles.badgeIconEarned]}>
-        {/* A locked badge shows its own icon dimmed, not a padlock. Thirteen
-            identical locks read as a wall; thirteen faint shapes read as a
-            collection waiting to be filled. */}
-        <Icon name={badge.icon} size={19} color={earned ? theme.ember : theme.textFaint} />
-      </View>
+      {/* A locked badge is its own candle, unlit and part-filled — not a
+          padlock. Thirteen identical locks read as a wall; thirteen candles at
+          thirteen different levels read as a collection you are partway
+          through, and the fill says how far without being read. */}
+      <Candle
+        vessel={badge.vessel}
+        wax={WAX[badge.wax]}
+        fill={value / target}
+        lit={earned}
+        still={still}
+        style={styles.badgeCandle}
+      />
       <Text style={[styles.badgeName, earned && styles.badgeNameEarned]} numberOfLines={1}>
         {badge.name}
       </Text>
@@ -92,6 +101,7 @@ export default function ProgressScreen() {
   // Held separately from `progress` so the NEW flags survive being marked seen —
   // the badge should still read NEW for the visit that revealed it.
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const still = useReduceMotion();
 
   useScreenLoad(
     useCallback(() => {
@@ -162,7 +172,7 @@ export default function ProgressScreen() {
       </View>
       <View style={styles.badgeGrid}>
         {badges.map((badge) => (
-          <BadgeTile key={badge.id} badge={badge} isNew={newIds.has(badge.id)} />
+          <BadgeTile key={badge.id} badge={badge} isNew={newIds.has(badge.id)} still={still} />
         ))}
       </View>
 
@@ -296,17 +306,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.emberVeil,
     borderColor: theme.emberEdge,
   },
-  badgeIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.bgRaised,
+  badgeCandle: {
+    // Nudged out to the tile's left edge: the candle's box is wider than any
+    // candle in it, so padding it flush leaves the wax looking indented.
+    marginLeft: -space.xs,
     marginBottom: space.sm,
-  },
-  badgeIconEarned: {
-    backgroundColor: theme.emberGlow,
   },
   badgeName: {
     color: theme.textDim,

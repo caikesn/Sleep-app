@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleProp, ImageStyle } from 'react-native';
-import { duration, easing } from '../motion';
+import React from 'react';
+import { Animated, StyleProp, ViewStyle } from 'react-native';
+import { duration, useAmbientLoop } from '../motion';
 
 /**
  * The Wick mark, idling.
@@ -10,17 +10,47 @@ import { duration, easing } from '../motion';
  * would be the wrong trade. The PNG carries its own bloom on transparency, so
  * it sits on any of the app's grounds without a plate behind it.
  *
- * The movement is a slow swell plus a slight sway, not a flicker. A real flame
- * flickers, but a flicker is high-frequency motion at the top of a sign-in
- * screen, and this app is opened by someone trying to stop looking at their
- * phone. It breathes at roughly the pace the breathing pacer asks you to,
- * which is the point.
+ * **The movement is a lean and a draw, not a flicker.** A real flame flickers,
+ * but a flicker is high-frequency motion at the top of a screen someone is
+ * looking at in order to stop looking at their phone. So:
  *
- * The sway runs on its own loop, longer than the breath and not a clean
- * multiple of it, so the two drift in and out of phase instead of locking
- * together — a flame breathing and leaning in lockstep reads as mechanical,
- * the one thing this is trying not to be.
+ * - It **leans from its foot**, not from its middle. A rotation about the
+ *   centre swings the base out from under the flame, which is why the old
+ *   sideways slide never read as fire — flames are attached to something.
+ * - It **draws up and settles**, taller and narrower and then shorter and
+ *   wider, at roughly constant volume. This is the part that reads as a flame
+ *   rather than as a logo being animated.
+ * - Its brightness only breathes. Nothing here modulates opacity quickly;
+ *   that is what a flicker is, and it is the one thing being avoided.
+ *
+ * The three loops run at 1, 1.3 and 1.7 times the breath, none a clean multiple
+ * of another, so they drift in and out of phase and the whole thing never
+ * visibly repeats. A flame that leans and swells in lockstep reads as
+ * mechanical, and randomness would read as a flicker; incommensurate periods
+ * are how you get neither.
  */
+
+/**
+ * The fraction of the asset that is actually lit shape.
+ *
+ * `make-icon.mjs` draws the flame's apex at -0.1875 and its base at +0.1875 of
+ * a unit that is 0.78 of the file's width, so the flame is `0.375 × 0.78` of the
+ * image, centred, and everything else is the bloom it carries on transparency.
+ * Anything positioning or pivoting the mark needs this, which is why it lives
+ * with the asset rather than with any one screen that draws it.
+ */
+export const FLAME_BODY = 0.375 * 0.78;
+
+/** Where the flame's foot sits in the image, as a fraction from the top. */
+const FOOT = 0.5 + FLAME_BODY / 2;
+
+/** How far the tip leans either side of upright. */
+const LEAN_DEGREES = 2.6;
+
+/** Loop lengths, as multiples of the breath. Deliberately not whole ratios. */
+const LEAN_PERIOD = 1.7;
+const DRAW_PERIOD = 1.3;
+
 /** Anything that can be multiplied into the idle: a constant or a driven value. */
 type Driver = number | Animated.Value | Animated.AnimatedInterpolation<number>;
 
@@ -29,6 +59,8 @@ export default function Flame({
   dim,
   scale,
   still,
+  sway: swaying = true,
+  lean,
   style,
 }: {
   size?: number;
@@ -41,87 +73,90 @@ export default function Flame({
    * Multiplied into the idle's scale, so a shrinking flame still breathes.
    * Scale rather than a smaller `size`: width and height cannot be driven
    * natively, and a flame that stutters is worse than one that doesn't move.
+   *
+   * Applied about the image's centre, unlike the idle, because callers place
+   * the mark by compensating for exactly that.
    */
   scale?: Driver;
-  /** Holds the swell at its mid point, for reduced motion. */
+  /** Holds every loop at its mid point, for reduced motion. */
   still?: boolean;
-  style?: StyleProp<ImageStyle>;
+  /**
+   * Whether the flame leans. Off for anything drawn small: the lean is
+   * proportional so it never overshoots, but a flame twenty points tall stands
+   * on a wick two points wide and any horizontal travel at all reads as it
+   * sliding off. The draw and the breath stay either way.
+   */
+  sway?: boolean;
+  /**
+   * An external 0→1 loop to lean on, instead of running one.
+   *
+   * For screens that light something else off the same flame. Tonight casts a
+   * pool of light on the surface below, and a pool that sways on its own clock
+   * drifts against the flame casting it — visibly, since the two are inches
+   * apart. Handing both the same value is the only way they stay one light.
+   */
+  lean?: Animated.Value;
+  /**
+   * Placement. Lands on the wrapper rather than on the image, because that is
+   * the element with the mark's footprint — a caller absolutely positioning the
+   * image inside would leave the wrapper behind, taking up space in the layout.
+   */
+  style?: StyleProp<ViewStyle>;
 }) {
-  const swell = useRef(new Animated.Value(0)).current;
-  const sway = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (still) {
-      swell.setValue(0.5);
-      return;
-    }
-
-    const cycle = Animated.loop(
-      Animated.sequence([
-        Animated.timing(swell, {
-          toValue: 1,
-          duration: duration.breath / 2,
-          easing: easing.breathe,
-          useNativeDriver: true,
-        }),
-        Animated.timing(swell, {
-          toValue: 0,
-          duration: duration.breath / 2,
-          easing: easing.breathe,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    cycle.start();
-    return () => cycle.stop();
-  }, [swell, still]);
-
-  useEffect(() => {
-    if (still) {
-      sway.setValue(0.5);
-      return;
-    }
-
-    // 1.7x the breath's length and not a clean multiple of it, so the sway
-    // and the swell only line up rarely rather than beating together.
-    const half = (duration.breath * 1.7) / 2;
-    const cycle = Animated.loop(
-      Animated.sequence([
-        Animated.timing(sway, { toValue: 1, duration: half, easing: easing.breathe, useNativeDriver: true }),
-        Animated.timing(sway, { toValue: 0, duration: half, easing: easing.breathe, useNativeDriver: true }),
-      ])
-    );
-
-    cycle.start();
-    return () => cycle.stop();
-  }, [sway, still]);
+  const swell = useAmbientLoop(duration.breath / 2, still);
+  const draw = useAmbientLoop((duration.breath * DRAW_PERIOD) / 2, still);
+  // Parked when a caller supplies its own, so the spare loop isn't running.
+  const ownLean = useAmbientLoop((duration.breath * LEAN_PERIOD) / 2, still || lean !== undefined);
+  const leaning = lean ?? ownLean;
 
   const idleOpacity = swell.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] });
-  const idleScale = swell.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1.03] });
-  // A few points either side of centre — a lean, not a drift across the screen.
-  const idleSway = sway.interpolate({ inputRange: [0, 1], outputRange: [-5, 5] });
+  const breathe = swell.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1.03] });
+
+  // Taller and narrower, then shorter and wider — near enough constant volume
+  // that it reads as the same flame moving rather than as one being resized.
+  const drawY = draw.interpolate({ inputRange: [0, 1], outputRange: [0.965, 1.05] });
+  const drawX = draw.interpolate({ inputRange: [0, 1], outputRange: [1.025, 0.98] });
+
+  const tilt = swaying ? LEAN_DEGREES : 0;
+  const rotate = leaning.interpolate({
+    inputRange: [0, 1],
+    outputRange: [`-${tilt}deg`, `${tilt}deg`],
+  });
 
   return (
-    <Animated.Image
-      // Decorative: the screen states the app's name in text directly below it,
-      // so announcing it again here would only make the heading read twice.
+    // The idle rides on a wrapper rather than on the image so it can pivot at
+    // the flame's foot while the caller's `scale` still works about the centre.
+    // One element cannot have two transform origins.
+    <Animated.View
+      // Decorative: screens that show this state the app's name in text beside
+      // it, so announcing it here would only make the heading read twice.
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      source={require('../../assets/splash-icon.png')}
-      resizeMode="contain"
+      pointerEvents="none"
       style={[
+        style,
         {
           width: size,
           height: size,
-          opacity: dim === undefined ? idleOpacity : Animated.multiply(idleOpacity, dim),
+          transformOrigin: ['50%', `${FOOT * 100}%`, 0],
           transform: [
-            { scale: scale === undefined ? idleScale : Animated.multiply(idleScale, scale) },
-            { translateX: idleSway },
+            { rotate },
+            { scaleX: Animated.multiply(breathe, drawX) },
+            { scaleY: Animated.multiply(breathe, drawY) },
           ],
         },
-        style,
       ]}
-    />
+    >
+      <Animated.Image
+        source={require('../../assets/splash-icon.png')}
+        resizeMode="contain"
+        style={{
+          width: size,
+          height: size,
+          opacity: dim === undefined ? idleOpacity : Animated.multiply(idleOpacity, dim),
+          transform: scale === undefined ? [] : [{ scale }],
+        }}
+      />
+    </Animated.View>
   );
 }
