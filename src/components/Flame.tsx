@@ -10,10 +10,16 @@ import { duration, easing } from '../motion';
  * would be the wrong trade. The PNG carries its own bloom on transparency, so
  * it sits on any of the app's grounds without a plate behind it.
  *
- * The movement is a slow swell, not a flicker. A real flame flickers, but a
- * flicker is high-frequency motion at the top of a sign-in screen, and this app
- * is opened by someone trying to stop looking at their phone. It breathes at
- * roughly the pace the breathing pacer asks you to, which is the point.
+ * The movement is a slow swell plus a slight sway, not a flicker. A real flame
+ * flickers, but a flicker is high-frequency motion at the top of a sign-in
+ * screen, and this app is opened by someone trying to stop looking at their
+ * phone. It breathes at roughly the pace the breathing pacer asks you to,
+ * which is the point.
+ *
+ * The sway runs on its own loop, longer than the breath and not a clean
+ * multiple of it, so the two drift in and out of phase instead of locking
+ * together — a flame breathing and leaning in lockstep reads as mechanical,
+ * the one thing this is trying not to be.
  */
 /** Anything that can be multiplied into the idle: a constant or a driven value. */
 type Driver = number | Animated.Value | Animated.AnimatedInterpolation<number>;
@@ -42,6 +48,7 @@ export default function Flame({
   style?: StyleProp<ImageStyle>;
 }) {
   const swell = useRef(new Animated.Value(0)).current;
+  const sway = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (still) {
@@ -70,8 +77,30 @@ export default function Flame({
     return () => cycle.stop();
   }, [swell, still]);
 
+  useEffect(() => {
+    if (still) {
+      sway.setValue(0.5);
+      return;
+    }
+
+    // 1.7x the breath's length and not a clean multiple of it, so the sway
+    // and the swell only line up rarely rather than beating together.
+    const half = (duration.breath * 1.7) / 2;
+    const cycle = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sway, { toValue: 1, duration: half, easing: easing.breathe, useNativeDriver: true }),
+        Animated.timing(sway, { toValue: 0, duration: half, easing: easing.breathe, useNativeDriver: true }),
+      ])
+    );
+
+    cycle.start();
+    return () => cycle.stop();
+  }, [sway, still]);
+
   const idleOpacity = swell.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] });
   const idleScale = swell.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1.03] });
+  // A few points either side of centre — a lean, not a drift across the screen.
+  const idleSway = sway.interpolate({ inputRange: [0, 1], outputRange: [-5, 5] });
 
   return (
     <Animated.Image
@@ -88,6 +117,7 @@ export default function Flame({
           opacity: dim === undefined ? idleOpacity : Animated.multiply(idleOpacity, dim),
           transform: [
             { scale: scale === undefined ? idleScale : Animated.multiply(idleScale, scale) },
+            { translateX: idleSway },
           ],
         },
         style,
