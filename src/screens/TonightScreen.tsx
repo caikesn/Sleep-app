@@ -13,6 +13,7 @@ import Embers, { Speck } from '../components/Embers';
 import WeekStrip, { WEEK_LENGTH } from '../components/WeekStrip';
 import { theme, space, radius, gradients, WICK_FALLOFF, EMBER_RGB } from '../theme';
 import { easing, useAmbientLoop } from '../motion';
+import { ordinal } from '../format';
 import { useReduceMotion } from '../reduceMotion';
 import { builtinRoutine, resolveSteps, routineMinutes, stepLength } from '../routineData';
 import { loadActiveRoutine, refreshActiveRoutine } from '../routines';
@@ -447,7 +448,7 @@ export default function TonightScreen() {
     <Screen ground={gradients.wick} groundStops={WICK_FALLOFF} background={background}>
       <View style={styles.eyebrowRow} onLayout={(e) => setEyebrowHeight(e.nativeEvent.layout.height)}>
         <Text style={styles.eyebrow}>TONIGHT</Text>
-        {streak > 0 && <Text style={styles.night}>{streak}rd night</Text>}
+        {streak > 0 && <Text style={styles.night}>{ordinal(streak)} night</Text>}
       </View>
 
       <View style={[styles.flameBox, { height: boxHeight }]}>
