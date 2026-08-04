@@ -56,22 +56,30 @@ function Stat({ value, label }: { value: string; label: string }) {
 }
 
 function BadgeTile({ badge, isNew, still }: { badge: BadgeState; isNew: boolean; still: boolean }) {
-  const { earned, value, target } = badge;
+  const { earned, value, best, target } = badge;
+  // An earned candle is finished and stays full. Only the climb is losable, so
+  // only an unearned streak badge ever drains back down.
+  const fill = earned ? 1 : value / target;
+  const lapsed = !earned && best > value;
 
   return (
     <View style={[styles.badge, earned && styles.badgeEarned]}>
       {/* A locked badge is its own candle, unlit and part-filled — not a
-          padlock. Thirteen identical locks read as a wall; thirteen candles at
-          thirteen different levels read as a collection you are partway
+          padlock. Fifteen identical locks read as a wall; fifteen candles at
+          fifteen different levels read as a collection you are partway
           through, and the fill says how far without being read. */}
       <Candle
         vessel={badge.vessel}
         wax={WAX[badge.wax]}
-        fill={value / target}
+        fill={fill}
         lit={earned}
         still={still}
         style={styles.badgeCandle}
       />
+      {/* Sits in the gap beside the candle, which no vessel reaches into. A
+          streak badge has to declare itself *before* it drops, or the first
+          night you miss looks like the app losing your progress. */}
+      {badge.streak && <Text style={styles.streakTag}>STREAK</Text>}
       <Text style={[styles.badgeName, earned && styles.badgeNameEarned]} numberOfLines={1}>
         {badge.name}
       </Text>
@@ -84,9 +92,16 @@ function BadgeTile({ badge, isNew, still }: { badge: BadgeState; isNew: boolean;
       ) : (
         <View style={styles.progress}>
           <View style={styles.progressTrack}>
+            {/* The high-water mark, left behind in a dimmer ember when a streak
+                breaks. A bar that simply snapped to zero would read as the app
+                forgetting; the ghost says you were here, and it's still there
+                to be beaten. */}
+            {lapsed && (
+              <View style={[styles.progressGhost, { width: `${(best / target) * 100}%` }]} />
+            )}
             <View style={[styles.progressFill, { width: `${(value / target) * 100}%` }]} />
           </View>
-          <Text style={styles.progressText}>
+          <Text style={[styles.progressText, lapsed && styles.progressTextLapsed]}>
             {value} / {target}
           </Text>
         </View>
@@ -292,8 +307,8 @@ const styles = StyleSheet.create({
     rowGap: space.sm,
   },
   badge: {
-    // Fixed width with space-between rather than flexGrow: the catalog has an
-    // odd number of badges, and a growing tile stretches the last one across
+    // Fixed width with space-between rather than flexGrow: the catalog can hold
+    // an odd number of badges, and a growing tile stretches the last one across
     // the full width like a broken row.
     width: '48.5%',
     backgroundColor: theme.card,
@@ -311,6 +326,23 @@ const styles = StyleSheet.create({
     // candle in it, so padding it flush leaves the wax looking indented.
     marginLeft: -space.xs,
     marginBottom: space.sm,
+  },
+  streakTag: {
+    position: 'absolute',
+    top: space.md,
+    right: space.md,
+    color: theme.textFaint,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
+    // Outlined rather than filled: an earned badge's EARNED is the only ember
+    // text on the tile, and a solid tag up here would outrank it.
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.cardBorder,
+    borderRadius: radius.pill,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    overflow: 'hidden',
   },
   badgeName: {
     color: theme.textDim,
@@ -346,6 +378,16 @@ const styles = StyleSheet.create({
     backgroundColor: theme.cardBorder,
     overflow: 'hidden',
   },
+  progressGhost: {
+    // Absolute so it underlays the live fill rather than stacking below it —
+    // the track is three points tall and holds exactly one bar's height.
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: 3,
+    borderRadius: radius.pill,
+    backgroundColor: theme.emberEdge,
+  },
   progressFill: {
     height: 3,
     borderRadius: radius.pill,
@@ -356,6 +398,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
+  },
+  progressTextLapsed: {
+    // A step up from faint, so a count that just fell back is noticed — but not
+    // red. Missing a night is a normal thing to have done, and this screen is
+    // opened in bed.
+    color: theme.textDim,
   },
   empty: {
     color: theme.textFaint,

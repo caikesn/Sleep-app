@@ -115,6 +115,95 @@ test('a lapsed streak dims the number but never takes the badge back', () => {
   assert.equal(badges.find((b) => b.id === 'streak-14')!.earned, false);
 });
 
+test('a lapsed streak does take the progress back', () => {
+  const week = [];
+  for (let day = 1; day <= 7; day += 1) week.push(at('routine', 2026, 7, day, 21, 0, 600));
+
+  const fortnight = evaluateBadges(computeStats(week, new Date(2026, 6, 20, 22, 0))).find(
+    (b) => b.id === 'streak-14'
+  )!;
+
+  // The whole point of a streak badge: the climb resets, and the tile can still
+  // say how far the climb got, so there is something to beat rather than a bar
+  // that looks like the app lost the record.
+  assert.equal(fortnight.value, 0, 'progress is the run you are on now');
+  assert.equal(fortnight.best, 7, 'the high-water mark survives');
+  assert.equal(fortnight.earned, false);
+});
+
+test('a cumulative badge is untouched by a missed night', () => {
+  const week = [];
+  for (let day = 1; day <= 7; day += 1) week.push(at('routine', 2026, 7, day, 21, 0, 600));
+
+  const badges = evaluateBadges(computeStats(week, new Date(2026, 6, 20, 22, 0)));
+  const tenNights = badges.find((b) => b.id === 'sessions-10')!;
+
+  assert.equal(tenNights.value, 7, 'nights finished stay finished');
+  assert.equal(tenNights.best, tenNights.value, 'nothing to remember — it only climbs');
+});
+
+test('every streak badge declares itself, and only streak badges can fall back', () => {
+  for (const badge of BADGES) {
+    if (badge.streak) {
+      assert.ok(badge.peak, `${badge.id} is a streak with no high-water mark to earn against`);
+    } else {
+      assert.ok(!badge.peak, `${badge.id} is cumulative, so its measure is already its own best`);
+    }
+  }
+  assert.ok(BADGES.some((b) => b.streak), 'the case has streak badges in it');
+});
+
+test('early nights count as nights, not as sessions', () => {
+  // Three stretches before 10pm on one evening is one early night. Counting
+  // sessions would have let a single keen evening earn most of the badge.
+  const oneEvening = [
+    at('stretch', 2026, 7, 10, 19, 0, 300),
+    at('stretch', 2026, 7, 10, 20, 0, 300),
+    at('routine', 2026, 7, 10, 21, 0, 300),
+  ];
+  const stats = computeStats(oneEvening, NOW);
+  assert.equal(stats.earlyNights, 1);
+  assert.equal(stats.earlyStreak, 1);
+});
+
+test('the early-night streak breaks on a late finish', () => {
+  const rows = [
+    at('routine', 2026, 7, 8, 21, 0, 600),
+    at('routine', 2026, 7, 9, 21, 0, 600),
+    at('routine', 2026, 7, 10, 23, 30, 600), // wound down, but not early
+  ];
+  const stats = computeStats(rows, NOW);
+
+  assert.equal(stats.streak, 3, 'the night streak is intact — you did wind down');
+  assert.equal(stats.earlyStreak, 0, 'the early one is not');
+  assert.equal(stats.bestEarlyStreak, 2);
+
+  const early = evaluateBadges(stats).find((b) => b.id === 'early-nights')!;
+  assert.equal(early.value, 0);
+  assert.equal(early.best, 2);
+});
+
+test('a comeback needs both a real gap and a real run', () => {
+  const run = (from: number, nights: number) => {
+    const rows = [];
+    for (let i = 0; i < nights; i += 1) rows.push(at('routine', 2026, 7, from + i, 21, 0, 600));
+    return rows;
+  };
+  const now = new Date(2026, 6, 31, 22, 0);
+  const comebacks = (rows: SessionSummary[]) => computeStats(rows, now).comebacks;
+
+  assert.equal(comebacks(run(1, 3)), 0, 'the first run of all is not a comeback');
+  assert.equal(comebacks([...run(1, 3), ...run(20, 3)]), 1);
+  assert.equal(comebacks([...run(1, 3), ...run(20, 2)]), 0, 'two nights is not a run');
+  assert.equal(comebacks([...run(1, 3), ...run(8, 3)]), 0, 'four missed nights is not a week off');
+  assert.equal(comebacks([...run(1, 3), ...run(12, 3), ...run(23, 3)]), 2, 'twice over');
+
+  const badge = evaluateBadges(computeStats([...run(1, 3), ...run(20, 3)], now)).find(
+    (b) => b.id === 'comeback'
+  )!;
+  assert.equal(badge.earned, true);
+});
+
 test('unseenBadges announces earned badges once', () => {
   const badges = evaluateBadges({ ...emptyStats, sessions: 12, bestStreak: 3 });
   const earned = badges.filter((b) => b.earned).map((b) => b.id);

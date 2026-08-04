@@ -139,13 +139,16 @@ looked at often, a reminder time is set once.
 - Current streak, best streak, total nights, total minutes.
 - A week strip and a full session history grouped by night ("Tonight", "Last
   night", then dates).
-- **13 badges, drawn as candles.** A badge fills with wax as you approach it and
+- **15 badges, drawn as candles.** A badge fills with wax as you approach it and
   **lights** when you earn it. The direction matters: the obvious version of this
   metaphor burns the candle down with progress, so the better you do the less
   candle you have and the prize is a puddle. Three families run through the
-  shapes — session counts grow (tealight → votive → jar → pillar), streaks gain
-  flames (taper → twin → triple, and a month becomes a storm lantern), total time
-  comes in tins.
+  shapes — session counts grow (tealight → votive → jar → pillar), streaks climb
+  and then take shelter (taper → twin → pillar, and past a month a storm
+  lantern), total time comes in tins.
+- **Six of them are streak badges**, labelled `STREAK` on the tile. Their
+  progress is the run you are on *now*, so a missed night empties the candle back
+  down — see the streak rules below for what that does and does not cost you.
 - Settings: both reminders with their times and nights, the light level, the
   warm wash toggle, links into the phone's own Display and Accessibility
   settings, the red-light tutorial, the walkthrough again, and sign out.
@@ -195,8 +198,20 @@ settings.
 - **The streak holds through the day.** It counts back from tonight, or from
   yesterday if tonight hasn't happened yet — otherwise it would read zero all day
   until you did your routine.
-- **Badges never come back off.** Streak badges measure *best* streak, so missing
-  a night dims the streak on Tonight but takes nothing away.
+- **A missed night costs the climb, not the trophy.** Streak badges show the run
+  you are on now, so a miss empties the bar back to nothing — but they are
+  *earned* against your best run ever, so a badge already in the case stays lit.
+  A badge you can lose isn't a badge; a bar you can't lose isn't a streak.
+- **A broken streak leaves a ghost.** The bar keeps a dim mark where the old run
+  reached. A bar that simply snapped to zero reads as the app forgetting, and
+  there would be nothing on screen to beat.
+- **The early-night streak doesn't get the grace night.** The main streak holds
+  through the day because you may not have wound down yet. If you *did* wind down
+  tonight and finished at 23:30, the night is spent — so "Lights out early" breaks
+  then and there rather than looking alive until 4am.
+- **A comeback needs a real gap and a real run.** Three nights in a row, begun a
+  week or more after the last run ended. The first run of all is never a comeback:
+  there was nothing to come back from.
 - **Abandoned sessions are logged but never scored.** They show in history; they
   do not count toward badges or streaks.
 - **The light level is a ceiling, not a multiplier.** It never brightens a phone
@@ -306,10 +321,11 @@ observed, and it is labelled that way on purpose.
 
 - ~15,700 lines of TypeScript/TSX across 13 screens, 16 components and ~25
   domain modules.
-- 13 test files, 155 assertions, **zero test dependencies** — Node 24 strips
+- 13 test files, 163 assertions, **zero test dependencies** — Node 24 strips
   TypeScript natively, so the runner is `node --test`.
-- 30 stretches, 13 badges, 9 candle silhouettes, 12 wax colours, 4 breathing
-  patterns, 3 guided scripts, 5 soundscapes, 4 light levels, 3 reminders.
+- 30 stretches, 15 badges (6 of them streaks), 9 candle silhouettes, 12 wax
+  colours, 4 breathing patterns, 3 guided scripts, 5 soundscapes, 4 light
+  levels, 3 reminders.
 - 4 Supabase tables (`profiles`, `routines`, `routine_steps`, `sessions`), all
   with RLS.
 - 8 build/tooling scripts, none of which are a dependency: icons, bells,

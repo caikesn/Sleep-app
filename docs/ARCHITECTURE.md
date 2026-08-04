@@ -547,7 +547,7 @@ moment, not like a product describing itself.
 |---|---|
 | Adding a reminder | `reminders.ts` (`ReminderId`, `REMINDER_KIND`, `REMINDER_COPY`, `DEFAULT_REMINDERS`), then `notifications.ts` (channel), then where a tap should land in `navigation/index.tsx`. Settings and storage are generic over `REMINDER_IDS` and need nothing. |
 | Adding a stretch | `routineData.ts` (permanent id, `perSide`, whole breath cycles), then `poseArt.ts` for its figure. |
-| Adding a badge | `achievements.ts` (a count against a target — keep it uniform so one progress bar renders all of them) and pick a `vessel` + `wax` pair no other badge uses. |
+| Adding a badge | `achievements.ts` (a count against a target — keep it uniform so one progress bar renders all of them) and pick a `vessel` + `wax` pair no other badge uses. If it is a run of nights, set `streak: true` and give it a `peak`: progress comes off the current run so a miss resets it, but earning comes off the best run so nothing is ever revoked. |
 | Changing the mark | `flame.ts`, then check **both** ends: `npm run icons -- --preview` and `npm run shoot -- tonight:steady`. |
 | Adding a preference | Ask the `lightingStorage.ts` question first: is this a fact about the person, or about this device in this room? The answer decides whether it needs a column and a migration at all. |
 | Touching audio or brightness | §8. Do not skip it. |

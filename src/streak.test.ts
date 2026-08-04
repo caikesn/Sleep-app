@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nightOf, addDays, computeStreak, longestStreak, lastNights, nightDate } from './streak';
+import {
+  nightOf,
+  addDays,
+  computeStreak,
+  longestStreak,
+  nightRuns,
+  daysBetween,
+  lastNights,
+  nightDate,
+} from './streak';
 
 /**
  * Run with `npm test`. No test framework — Node strips the types and runs the
@@ -69,6 +78,33 @@ test('longestStreak finds the best run ever recorded', () => {
   assert.equal(longestStreak(['2026-06-29', '2026-06-30', '2026-07-01']), 3, 'across a month');
   assert.equal(longestStreak(['2025-12-31', '2026-01-01']), 2, 'across a year');
   assert.equal(longestStreak(['2026-07-01', '2026-07-05', '2026-07-09']), 1, 'isolated nights');
+});
+
+test('nightRuns returns every run, oldest first, with its ends', () => {
+  assert.deepEqual(nightRuns([]), []);
+  assert.deepEqual(nightRuns(['2026-07-10']), [
+    { start: '2026-07-10', end: '2026-07-10', length: 1 },
+  ]);
+  assert.deepEqual(nightRuns(['2026-07-02', '2026-06-30', '2026-07-01', '2026-07-09']), [
+    { start: '2026-06-30', end: '2026-07-02', length: 3 },
+    { start: '2026-07-09', end: '2026-07-09', length: 1 },
+  ]);
+  assert.deepEqual(
+    nightRuns(['2026-07-01', '2026-07-01', '2026-07-02']),
+    [{ start: '2026-07-01', end: '2026-07-02', length: 2 }],
+    'duplicates'
+  );
+});
+
+test('daysBetween counts whole nights in both directions', () => {
+  assert.equal(daysBetween('2026-07-03', '2026-07-10'), 7);
+  assert.equal(daysBetween('2026-07-10', '2026-07-10'), 0);
+  assert.equal(daysBetween('2026-07-10', '2026-07-03'), -7);
+  assert.equal(daysBetween('2026-06-28', '2026-07-02'), 4, 'across a month');
+  // A span containing a daylight-saving change is 23 or 25 hours to the day, so
+  // dividing exactly would report 6.96 nights as six.
+  assert.equal(daysBetween('2026-04-01', '2026-04-08'), 7);
+  assert.equal(daysBetween('2026-10-01', '2026-10-08'), 7);
 });
 
 test('lastNights returns a window ending tonight, oldest first', () => {

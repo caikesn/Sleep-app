@@ -53,7 +53,8 @@ export function computeStreak(nights: Iterable<string>, now: Date = new Date()):
 /**
  * The longest run of consecutive nights ever recorded. Unlike the current
  * streak this never goes down, which is the point — a badge you can lose by
- * missing one night isn't a badge.
+ * missing one night isn't a badge. What a missed night takes is the *progress*
+ * toward the ones you haven't earned yet; see `achievements.ts`.
  */
 export function longestStreak(nights: Iterable<string>): number {
   const set = new Set(nights);
@@ -74,6 +75,45 @@ export function longestStreak(nights: Iterable<string>): number {
   }
 
   return best;
+}
+
+/** A run of consecutive nights. `length` counts nights, inclusive of both ends. */
+export type NightRun = { start: string; end: string; length: number };
+
+/**
+ * Every unbroken run in a set of nights, oldest first.
+ *
+ * `longestStreak` answers one question about these runs and throws the rest
+ * away. Anything that cares about the *gaps* — coming back after a break, say —
+ * needs the runs themselves, and night keys sort correctly as plain strings.
+ */
+export function nightRuns(nights: Iterable<string>): NightRun[] {
+  const set = new Set(nights);
+  const runs: NightRun[] = [];
+
+  for (const start of [...set].sort()) {
+    if (set.has(addDays(start, -1))) continue;
+
+    let length = 0;
+    let cursor = start;
+    while (set.has(cursor)) {
+      length += 1;
+      cursor = addDays(cursor, 1);
+    }
+    runs.push({ start, end: addDays(start, length - 1), length });
+  }
+
+  return runs;
+}
+
+/**
+ * Whole nights from `from` to `to`. Rounded rather than divided exactly: a span
+ * crossing a daylight-saving change is 23 or 25 hours long, and a gap of "6.96
+ * days" must not read as six.
+ */
+export function daysBetween(from: string, to: string): number {
+  const ms = nightDate(to).getTime() - nightDate(from).getTime();
+  return Math.round(ms / 86_400_000);
 }
 
 /** The last `count` night keys ending tonight, oldest first — for week strips. */

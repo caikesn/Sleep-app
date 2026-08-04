@@ -61,8 +61,12 @@ const steady: LoggedSession[] = [
   session(5, { kind: 'stretch', title: 'Hip opener', minutes: 6, hour: 20 }),
   // An abandoned one, to check the "left early" treatment.
   session(3, { kind: 'routine', title: 'Night Routine', minutes: 2, hour: 23, completed: false }),
-  // An older cluster, so the best streak is longer than the current one.
-  ...run(9, 20),
+  // An older, longer cluster, so the best streak beats the current one — which
+  // is the state the streak badges are most worth looking at in: the ones
+  // already earned stay lit, and the ones still to come show the ghost of how
+  // far the old run got. The gap before the current run is over a week, so this
+  // fixture is a comeback too.
+  ...run(16, 20),
 ];
 
 const veteran: LoggedSession[] = [
