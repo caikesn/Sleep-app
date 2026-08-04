@@ -5,7 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { theme, space, radius, gradients } from '../theme';
-import { logSession } from '../sessions';
+import { logSession, saveResume, clearResume } from '../sessions';
+import { nightOf } from '../streak';
+import { alignHeld, firstUnserved, isComplete } from '../resume';
+import { stepSeconds } from '../routineData';
 import { prepareBells, releaseBells, ring, tick } from '../audio';
 import { buildPhases, phaseIndexForStep, phaseLabel } from '../sessionPlan';
 import { type Lighting, DEFAULT_LIGHTING, DIM_COPY, nextDimLevel } from '../lighting';
@@ -28,13 +31,36 @@ const COUNT_IN = 3;
 export default function RoutineScreen({ route, navigation }: Props) {
   useKeepAwake();
   const insets = useSafeAreaInsets();
-  const { steps, title } = route.params;
+  const { steps, title, resume } = route.params;
 
   // The routine, flattened into get-ready and hold phases. See `sessionPlan.ts`.
   const phases = useMemo(() => buildPhases(steps), [steps]);
 
-  const [phaseIndex, setPhaseIndex] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(phases[0]?.seconds ?? 0);
+  /** What each step asks for, in seconds of hold. Both sides, on a two-sided pose. */
+  const planned = useMemo(() => steps.map(stepSeconds), [steps]);
+
+  /**
+   * Seconds actually held, per step — the session's real progress, and the only
+   * thing that decides whether it counts. Skipping does not add to it, which is
+   * the whole point: see `resume.ts`.
+   *
+   * Seeded from a resume point, so coming back carries the credit you already
+   * earned rather than starting the count again.
+   */
+  const heldRef = useRef<number[]>(alignHeld(resume?.held ?? [], steps.length));
+
+  /**
+   * Where a resumed session picks up: the first step that never got its time.
+   * A fresh session starts at nothing served, so this is phase zero.
+   */
+  const startPhase = useMemo(() => {
+    const step = firstUnserved(planned, heldRef.current);
+    return step <= 0 ? 0 : phaseIndexForStep(phases, step);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phases, planned]);
+
+  const [phaseIndex, setPhaseIndex] = useState(startPhase);
+  const [secondsLeft, setSecondsLeft] = useState(phases[startPhase]?.seconds ?? 0);
   const [paused, setPaused] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -96,36 +122,90 @@ export default function RoutineScreen({ route, navigation }: Props) {
   const startedAtRef = useRef(new Date());
   const loggedRef = useRef(false);
 
-  // Idempotent: whichever exit path fires first wins, so an explicit finish is
-  // never overwritten by the abandon listener below.
-  const record = useCallback(
-    (completed: boolean) => {
-      if (loggedRef.current) return;
-      loggedRef.current = true;
-      const startedAt = startedAtRef.current;
-      const endedAt = new Date();
-      void logSession({
-        kind: steps.length === 1 ? 'stretch' : 'routine',
-        title,
-        started_at: startedAt.toISOString(),
-        ended_at: endedAt.toISOString(),
-        completed,
-        duration_seconds: Math.max(
-          0,
-          Math.round((endedAt.getTime() - startedAt.getTime()) / 1000)
-        ),
-      });
-    },
-    [steps.length, title]
-  );
+  /**
+   * The live phase and clock, for the exit paths that fire outside a render.
+   *
+   * `record` runs from a navigation listener, which would otherwise close over
+   * whatever the values were when the listener was attached — and the seconds
+   * left on the current hold is exactly the number that has changed since.
+   */
+  const liveRef = useRef({ phaseIndex, secondsLeft });
+  useEffect(() => {
+    liveRef.current = { phaseIndex, secondsLeft };
+  });
+
+  /**
+   * Whether the phase on screen has already had its time banked, so leaving a
+   * hold and then logging the session can't credit the same seconds twice.
+   * Cleared on entering a phase, including on re-entering the same one — a
+   * stretch restarted with Back is served again from the top.
+   */
+  const creditedRef = useRef(false);
+
+  /**
+   * Banks the time actually served on the current hold.
+   *
+   * Time is credited on the way *out* of a phase rather than counted per tick:
+   * the difference between what a hold asked for and what is left on its clock
+   * is exact, needs no bookkeeping in the ticker, and can never award a second
+   * that didn't pass. Getting-ready phases bank nothing — they aren't the work.
+   */
+  function bankTime(index: number, remaining: number) {
+    if (creditedRef.current) return;
+    creditedRef.current = true;
+    const phase = phases[index];
+    if (phase?.kind !== 'hold') return;
+    heldRef.current[phase.stepIndex] += Math.max(0, phase.seconds - remaining);
+  }
+
+  /**
+   * Logs the session, completed or not — and that is no longer the caller's
+   * decision. Reaching the last screen is not finishing; holding most of the
+   * stretches is. Anything short of that is held open as a resume point instead,
+   * so the way back in is offered on Tonight rather than the night being lost.
+   *
+   * Idempotent: whichever exit path fires first wins.
+   */
+  const record = useCallback(() => {
+    if (loggedRef.current) return;
+    loggedRef.current = true;
+
+    bankTime(liveRef.current.phaseIndex, liveRef.current.secondsLeft);
+
+    const held = heldRef.current;
+    const completed = isComplete(planned, held);
+    const startedAt = startedAtRef.current;
+    const endedAt = new Date();
+
+    void logSession({
+      kind: steps.length === 1 ? 'stretch' : 'routine',
+      title,
+      started_at: startedAt.toISOString(),
+      ended_at: endedAt.toISOString(),
+      completed,
+      duration_seconds: Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000)),
+    });
+
+    if (completed) {
+      void clearResume();
+      return;
+    }
+
+    void saveResume({
+      title,
+      stepIds: steps.map((step) => step.id),
+      planned,
+      held,
+      night: nightOf(endedAt),
+      savedAt: endedAt.toISOString(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phases, planned, steps, title]);
 
   // Covers every way out that isn't finishing — End, hardware back, swipe.
   // `beforeRemove` fires only on real navigation, so unlike an unmount cleanup
   // it can't log a phantom session when an effect is re-run in development.
-  useEffect(() => navigation.addListener('beforeRemove', () => record(false)), [
-    navigation,
-    record,
-  ]);
+  useEffect(() => navigation.addListener('beforeRemove', () => record()), [navigation, record]);
 
   useEffect(() => {
     if (paused) return;
@@ -171,11 +251,17 @@ export default function RoutineScreen({ route, navigation }: Props) {
   }, [secondsLeft, phaseIndex]);
 
   function goToPhase(index: number) {
+    // Banked before the move, while the clock this phase ran on is still the
+    // one on screen. A hold that ran out banks all of it; one skipped halfway
+    // banks half.
+    bankTime(phaseIndex, secondsLeft);
+
     if (index >= phases.length) {
-      record(true);
+      record();
       navigation.goBack();
       return;
     }
+    creditedRef.current = false;
     setPhaseIndex(index);
     setSecondsLeft(phases[index].seconds);
   }
@@ -183,7 +269,8 @@ export default function RoutineScreen({ route, navigation }: Props) {
   /** Controls move by stretch, never by half of one — see `goBackOne` below. */
   function goToStep(index: number) {
     if (index >= steps.length) {
-      record(true);
+      bankTime(phaseIndex, secondsLeft);
+      record();
       navigation.goBack();
       return;
     }

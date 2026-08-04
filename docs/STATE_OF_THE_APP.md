@@ -77,7 +77,8 @@ state; the screen is a clock you read without reading.
 Under it: an ordinal night count ("your 12th night"), the first four steps of
 tonight's routine drawn as a descent down a lit rail, a Start button that becomes
 "Start anyway" once the countdown hits zero, this week's strip of lit/unlit
-nights, and a card for any badge you have earned but not yet seen.
+nights, a card for any badge you have earned but not yet seen, and — if you left a
+session half-done earlier tonight — a quieter card offering it back.
 
 ### Modules (tab 2)
 
@@ -214,6 +215,21 @@ settings.
   there was nothing to come back from.
 - **Abandoned sessions are logged but never scored.** They show in history; they
   do not count toward badges or streaks.
+- **Finishing is doing the work, not reaching the last screen.** A session counts
+  when 70% of its stretches each got 70% of their hold time. Tapping Skip through
+  eight stretches arrives at the end in about four seconds, and used to log a
+  completed session and extend the streak — a streak you can tap your way to is
+  worth nothing, and it makes the honest version feel pointless. Skipping *one*
+  pose still finishes the night; the ratio is there to be unreachable by tapping,
+  not to grade the effort.
+- **A session you leave early is held open for the rest of the night.** Tonight
+  offers it back ("unfinished tonight · 6 of 8 left · doesn't count yet") and
+  resuming carries the time already served. You come back in at the first stretch
+  that never got its time, *not* where you quit — resuming at the step you
+  abandoned would hand back everything you skipped to get there.
+- **A resume point does not outlive its night.** Credit lands on the night you do
+  the work, so Monday's half-finished routine can't be finished on Thursday to
+  patch a streak. It is device-local and never synced, like the light level.
 - **The light level is a ceiling, not a multiplier.** It never brightens a phone
   that is already darker than the level asks for.
 - **The light level is device-local and deliberately not synced.** A reminder time
@@ -321,7 +337,7 @@ observed, and it is labelled that way on purpose.
 
 - ~15,700 lines of TypeScript/TSX across 13 screens, 16 components and ~25
   domain modules.
-- 13 test files, 163 assertions, **zero test dependencies** — Node 24 strips
+- 14 test files, 173 assertions, **zero test dependencies** — Node 24 strips
   TypeScript natively, so the runner is `node --test`.
 - 30 stretches, 15 badges (6 of them streaks), 9 candle silhouettes, 12 wax
   colours, 4 breathing patterns, 3 guided scripts, 5 soundscapes, 4 light

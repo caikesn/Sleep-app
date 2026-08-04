@@ -9,6 +9,7 @@ import type { MaterialTopTabNavigationProp } from '@react-navigation/material-to
 import * as Notifications from 'expo-notifications';
 import { theme } from '../theme';
 import { resolveSteps, RoutineStep } from '../routineData';
+import type { ResumePoint } from '../resume';
 import { applyReminders, reminderFromResponse } from '../notifications';
 import { loadActiveRoutine } from '../routines';
 import { loadReminders } from '../storage';
@@ -34,7 +35,8 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   Onboarding: undefined;
   Tabs: undefined;
-  Session: { steps: RoutineStep[]; title: string };
+  /** `resume` carries the credit from a session left unfinished earlier tonight. */
+  Session: { steps: RoutineStep[]; title: string; resume?: ResumePoint };
   Meditation: undefined;
   RedLightTutorial: undefined;
 };

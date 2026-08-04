@@ -2,7 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './lib/supabase';
 import { nightOf } from './streak';
 import { computeStats, evaluateBadges, emptyStats, unseenBadges } from './achievements';
+import { isResumable } from './resume';
 import type { BadgeState, Stats } from './achievements';
+import type { ResumePoint } from './resume';
 import type { SessionKind } from './database.types';
 
 export { computeStreak, nightOf } from './streak';
@@ -19,6 +21,7 @@ export { computeStreak, nightOf } from './streak';
 const QUEUE_KEY = 'session_queue_v1';
 const LOG_KEY = 'session_log_v1';
 const SEEN_BADGES_KEY = 'seen_badges_v1';
+const RESUME_KEY = 'session_resume_v1';
 
 /**
  * Read but never written. Earlier builds cached bare night keys; unioning them
@@ -173,6 +176,39 @@ export async function loadProgress(): Promise<Progress> {
   return { history, stats, badges, unseen: unseenBadges(badges, seen) };
 }
 
+/**
+ * The session left unfinished tonight, if there is one worth offering back.
+ *
+ * Read through `isResumable`, so a point that has gone stale — last night's, or
+ * one with nothing left in it — is dropped here rather than by every caller. It
+ * is deleted on the way past too: a stale point is not evidence of anything, and
+ * leaving it on disk means finding it again on every read for a week.
+ */
+export async function loadResume(now: Date = new Date()): Promise<ResumePoint | null> {
+  const raw = await AsyncStorage.getItem(RESUME_KEY);
+  if (!raw) return null;
+
+  let point: ResumePoint | null = null;
+  try {
+    point = JSON.parse(raw) as ResumePoint;
+  } catch {
+    point = null;
+  }
+
+  if (isResumable(point, now)) return point;
+  await AsyncStorage.removeItem(RESUME_KEY);
+  return null;
+}
+
+export async function saveResume(point: ResumePoint): Promise<void> {
+  await AsyncStorage.setItem(RESUME_KEY, JSON.stringify(point));
+}
+
+/** Called when a session is finished properly, and when one is given up on. */
+export async function clearResume(): Promise<void> {
+  await AsyncStorage.removeItem(RESUME_KEY);
+}
+
 /** Stops a badge being announced twice. Called once the case has been viewed. */
 export async function markBadgesSeen(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
@@ -182,5 +218,13 @@ export async function markBadgesSeen(ids: string[]): Promise<void> {
 
 /** Must run on sign-out, or the next user inherits this one's streak. */
 export async function clearSessionCache(): Promise<void> {
-  await AsyncStorage.multiRemove([QUEUE_KEY, LOG_KEY, SEEN_BADGES_KEY, LEGACY_NIGHTS_KEY]);
+  await AsyncStorage.multiRemove([
+    QUEUE_KEY,
+    LOG_KEY,
+    SEEN_BADGES_KEY,
+    LEGACY_NIGHTS_KEY,
+    // Half a stranger's routine offered back on the next sign-in is the same
+    // leak as their streak, in a smaller shape.
+    RESUME_KEY,
+  ]);
 }

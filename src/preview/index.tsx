@@ -24,6 +24,7 @@ import { AuthProvider } from '../lib/AuthContext';
 import {
   FIXTURES,
   LIGHTING_FIXTURES,
+  RESUME_FIXTURES,
   ROUTINE_FIXTURES,
   SETTINGS_FIXTURES,
   EDITABLE_ROUTINE_ID,
@@ -179,6 +180,9 @@ export default function Preview({ request }: { request: PreviewRequest }) {
       // what a shot of a dark fixture shows is the warm wash and the banner,
       // not the dim itself. That part is only checkable on a device.
       ['lighting_v1', JSON.stringify(lighting)],
+      // Absent in most fixtures, which is the normal state — `loadResume` reads
+      // 'null' back as nothing to offer.
+      ['session_resume_v1', JSON.stringify(RESUME_FIXTURES[request.fixture] ?? null)],
     ]).then(() => setReady(true));
   }, [request.fixture]);
 

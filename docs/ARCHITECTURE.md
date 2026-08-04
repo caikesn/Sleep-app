@@ -59,6 +59,7 @@ So every feature gets split at that line, and the split is always the same shape
 | `poseArt.ts` — 30 figure skeletons | `components/Pose.tsx` |
 | `routineData.ts` — catalog, durations, reordering | `routines.ts` — sync |
 | `sessionPlan.ts` — routine → phase list | `screens/RoutineScreen.tsx` |
+| `resume.ts` — what counts as finished, where to come back in | `sessions.ts` — the saved point |
 | `breathing.ts` — patterns, `phaseAt`, `scaleFor` | `components/BreathingPacer.tsx` |
 | `meditationData.ts` — scripts, timelines, bell times | |
 | `reminders.ts` — what to schedule, and when | `notifications.ts` — expo-notifications |

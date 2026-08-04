@@ -20,7 +20,9 @@ import { loadActiveRoutine, refreshActiveRoutine } from '../routines';
 import type { SavedRoutine } from '../routines';
 import { type Reminders, loadCachedReminders, loadReminders } from '../storage';
 import { type Reminder, fireAtOn } from '../reminders';
-import { loadProgress, nightOf } from '../sessions';
+import { loadProgress, loadResume, nightOf } from '../sessions';
+import { stepsLeft } from '../resume';
+import type { ResumePoint } from '../resume';
 import { lastNights } from '../streak';
 import type { BadgeState } from '../achievements';
 import type { TabScreenNavigation } from '../navigation';
@@ -209,6 +211,7 @@ export default function TonightScreen() {
   const [streak, setStreak] = useState(0);
   const [nights, setNights] = useState<Set<string>>(new Set());
   const [earned, setEarned] = useState<BadgeState | null>(null);
+  const [unfinished, setUnfinished] = useState<ResumePoint | null>(null);
   const [routine, setRoutine] = useState<SavedRoutine>(builtinRoutine);
   const [clock, setClock] = useState(() => burnedDown(null));
   const [eyebrowHeight, setEyebrowHeight] = useState(EYEBROW_FALLBACK);
@@ -233,6 +236,10 @@ export default function TonightScreen() {
       // reflected here the instant you come back.
       loadActiveRoutine().then((r) => active && setRoutine(r));
       refreshActiveRoutine().then((r) => active && setRoutine(r));
+      // Re-read on focus rather than once: the session you left is the screen
+      // you have just come back *from*, so the offer to finish it has to appear
+      // without the tab being visited again.
+      loadResume().then((point) => active && setUnfinished(point));
       // Refetched on focus so finishing a routine updates the streak — and
       // announces any badge it just earned — the moment you land back here.
       loadProgress().then((p) => {
@@ -309,6 +316,20 @@ export default function TonightScreen() {
 
   const steps = resolveSteps(routine.stepIds);
   const totalMinutes = routineMinutes(routine.stepIds);
+
+  /**
+   * The unfinished session's steps, or null if there is nothing to offer.
+   *
+   * Resolved here rather than on the way in so a point naming a step that has
+   * since left the catalog is dropped whole: the saved times are aligned to the
+   * ids by position, and a missing step would slide the rest of them onto the
+   * wrong stretches.
+   */
+  const unfinishedSteps = (() => {
+    if (!unfinished) return null;
+    const resolved = resolveSteps(unfinished.stepIds);
+    return resolved.length === unfinished.stepIds.length ? resolved : null;
+  })();
   const boxHeight = BOX_HEIGHT[0] + (BOX_HEIGHT[1] - BOX_HEIGHT[0]) * burn;
 
   /**
@@ -531,6 +552,36 @@ export default function TonightScreen() {
           </>
         )}
       </View>
+
+      {unfinishedSteps && (
+        <Pressable
+          style={styles.resumeCard}
+          onPress={() =>
+            navigation.navigate('Session', {
+              steps: unfinishedSteps,
+              title: unfinished!.title,
+              resume: unfinished!,
+            })
+          }
+        >
+          <View style={styles.resumeIcon}>
+            <Icon name="rotate" size={20} color={theme.textDim} />
+          </View>
+          <View style={styles.earnedText}>
+            {/* Says what it is and what it costs, because the alternative
+                reading — that the night is already lost — is the one that stops
+                people coming back. */}
+            <Text style={styles.resumeEyebrow}>UNFINISHED TONIGHT</Text>
+            <Text style={styles.resumeName} numberOfLines={1}>
+              {unfinished!.title}
+            </Text>
+            <Text style={styles.resumeMeta}>
+              {stepsLeft(unfinished!)} of {unfinished!.stepIds.length} left · doesn't count yet
+            </Text>
+          </View>
+          <Icon name="chevron" size={18} color={theme.textDim} />
+        </Pressable>
+      )}
 
       {earned && (
         <Pressable
@@ -796,6 +847,45 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: space.md,
     marginTop: space.md,
+  },
+  // Deliberately the quieter of the two cards. An achievement is the screen
+  // congratulating you and earns the ember; an unfinished session is a note to
+  // self, and dressing it up as a prize would make leaving early feel rewarded.
+  resumeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.cardBorder,
+    borderRadius: radius.lg,
+    padding: space.md,
+    marginTop: space.md,
+  },
+  resumeIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: space.md,
+  },
+  resumeEyebrow: {
+    color: theme.textFaint,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+  },
+  resumeName: {
+    color: theme.text,
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  resumeMeta: {
+    color: theme.textFaint,
+    fontSize: 12,
+    marginTop: 2,
   },
   earnedIcon: {
     width: 38,

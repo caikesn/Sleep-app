@@ -2,7 +2,9 @@ import type { LoggedSession } from '../sessions';
 import type { Reminders } from '../storage';
 import { EVERY_NIGHT, WEEKNIGHTS } from '../reminders';
 import type { RoutinePlan } from '../routineData';
-import { BUILTIN_ROUTINE_ID, stepCatalog } from '../routineData';
+import { BUILTIN_ROUTINE_ID, builtinRoutine, resolveSteps, stepCatalog, stepSeconds } from '../routineData';
+import type { ResumePoint } from '../resume';
+import { nightOf } from '../streak';
 import type { SessionKind } from '../database.types';
 import { type Lighting, DEFAULT_LIGHTING } from '../lighting';
 
@@ -89,6 +91,31 @@ export const FIXTURES: Record<string, LoggedSession[]> = {
 };
 
 export type FixtureName = keyof typeof FIXTURES;
+
+/**
+ * A session left half-done, for the card Tonight offers it back with.
+ *
+ * Only `steady` carries one: the state is worth looking at, but it is not the
+ * state Tonight is usually in, and putting it in every fixture would mean never
+ * seeing the screen without it. The night is computed rather than written down,
+ * for the same reason the sessions are — a fixed date would make the card
+ * disappear tomorrow.
+ */
+export const RESUME_FIXTURES: Record<string, ResumePoint | null> = {
+  empty: null,
+  starting: null,
+  veteran: null,
+  steady: {
+    title: 'Night Routine',
+    stepIds: builtinRoutine.stepIds,
+    planned: resolveSteps(builtinRoutine.stepIds).map(stepSeconds),
+    // The first two stretches held, the rest still owed — so the card has a
+    // count in it and resuming lands somewhere other than the beginning.
+    held: resolveSteps(builtinRoutine.stepIds).map((step, i) => (i < 2 ? stepSeconds(step) : 0)),
+    night: nightOf(new Date()),
+    savedAt: new Date().toISOString(),
+  },
+};
 
 /**
  * Saved routines, for the builder and the routine list. The ids are fixed rather
