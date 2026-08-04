@@ -1,6 +1,6 @@
 # Wick — state of the app
 
-**As of 5 August 2026** · branch `feat/wake-reminder` · 155 tests passing · `tsc --noEmit` clean
+**As of 5 August 2026** · branch `main`, clean · HEAD `b402473` · 155 tests passing · `tsc --noEmit` clean
 
 A companion to [ARCHITECTURE.md](ARCHITECTURE.md), which explains *how* the thing is
 built. This one is about *what exists*, what it does when you open it, and what
