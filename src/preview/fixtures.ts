@@ -137,6 +137,19 @@ function lightsOutAfter(
   return { id: 'lights-out', hour: at.getHours(), minute: at.getMinutes(), enabled, nights };
 }
 
+/** And the morning sits a night after lights out, wrapping past midnight. */
+function wakeAfter(lightsOut: Reminders['lights-out'], minutes: number): Reminders['wake'] {
+  const at = new Date();
+  at.setHours(lightsOut.hour, lightsOut.minute + minutes, 0, 0);
+  return {
+    id: 'wake',
+    hour: at.getHours(),
+    minute: at.getMinutes(),
+    enabled: lightsOut.enabled,
+    nights: lightsOut.nights,
+  };
+}
+
 /**
  * Wind-down stays on every night in every fixture, deliberately.
  *
@@ -147,9 +160,16 @@ function lightsOutAfter(
  * 600ms and calling the glow too dim.
  */
 function pair(windDown: Reminders['wind-down'], lightsOut: Partial<{ enabled: boolean; nights: typeof WEEKNIGHTS }> = {}): Reminders {
+  const lights = lightsOutAfter(windDown, 75, lightsOut);
   return {
     'wind-down': windDown,
-    'lights-out': lightsOutAfter(windDown, 75, lightsOut),
+    'lights-out': lights,
+    // Offset from lights out rather than pinned to 7am, so the sleep-window
+    // line in Settings always shoots a plausible night. A fixed morning against
+    // a clock-relative evening reads as twenty-two hours whenever the shot is
+    // taken before lunch, which looks exactly like the bug that line is
+    // guarded against. Nights follow lights out: the two are read as one night.
+    wake: wakeAfter(lights, 8 * 60 + 15),
   };
 }
 

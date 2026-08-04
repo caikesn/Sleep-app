@@ -195,11 +195,14 @@ before the new password is saved), and `onboarding === null` (not read yet —
 guessing `false` shows a frame of Tonight, guessing `true` flashes the walkthrough
 at everybody).
 
-**A tapped reminder is held, not dropped.** The `Session` route only exists in the
-signed-in group, so `pendingSession` is a ref that survives until a session
-appears *and* onboarding is done, then starts whichever routine Tonight would have
-started — not the built-in one, because a shortcut that ignores the routine you
-saved is worse than no shortcut.
+**A tapped reminder is held, not dropped.** Those routes only exist in the
+signed-in group, so `pendingIntent` is a ref that survives until a session
+appears *and* onboarding is done. It holds a destination rather than a boolean
+because the three reminders disagree about where they go: wind-down starts
+whichever routine Tonight would have started — not the built-in one, because a
+shortcut that ignores the routine you saved is worse than no shortcut — morning
+opens the stretch library rather than force-starting anything, and lights out
+deliberately opens nothing at all.
 
 **Reminders are re-registered on every launch.** Pending notifications do not
 survive a reinstall and the OS drops them when restoring to a new device, but the
@@ -380,8 +383,17 @@ Schedule changes are **serialised per reminder id**, because every change is
 cancel-then-schedule and dragging the time picker fires a change per tick — two
 interleaving calls will cancel a schedule the earlier one had not yet written.
 
+**`nights` names the night, and two rules turn it into a weekday.** `fireDay`
+takes the reminder's `ReminderKind`, not just its hour. An *evening* reminder
+rolls to the next day only below the 4am `NIGHT_CUTOFF_HOUR`, because until then
+it still belongs to the night behind it. A *morning* reminder is the day after
+its night at every hour — 7am on "Sunday night" is Monday, and the evening rule
+answers Sunday, the morning twenty-three hours before the night it was set for.
+That is the same off-by-a-day the cutoff exists to prevent, in the other
+direction, which is why the cutoff could not simply be reused.
+
 A full week collapses to **one DAILY trigger**, not seven WEEKLY ones, because iOS
-caps an app at 64 pending notifications and a future morning alarm shares that
+caps an app at 64 pending notifications and three reminders share that
 budget. One Android channel **per reminder**, not one for the app, because a
 channel is the only handle a user has to change behaviour and it cannot be changed
 after creation — sharing one would mean silencing "lights out" also silences the
@@ -533,7 +545,7 @@ moment, not like a product describing itself.
 
 | If you are… | Read first |
 |---|---|
-| Adding a morning alarm | `reminders.ts` (add a third `ReminderId`), then `notifications.ts` (copy + channel), then Settings' reminder card — it is already generic over `REMINDER_IDS`. |
+| Adding a reminder | `reminders.ts` (`ReminderId`, `REMINDER_KIND`, `REMINDER_COPY`, `DEFAULT_REMINDERS`), then `notifications.ts` (channel), then where a tap should land in `navigation/index.tsx`. Settings and storage are generic over `REMINDER_IDS` and need nothing. |
 | Adding a stretch | `routineData.ts` (permanent id, `perSide`, whole breath cycles), then `poseArt.ts` for its figure. |
 | Adding a badge | `achievements.ts` (a count against a target — keep it uniform so one progress bar renders all of them) and pick a `vessel` + `wax` pair no other badge uses. |
 | Changing the mark | `flame.ts`, then check **both** ends: `npm run icons -- --preview` and `npm run shoot -- tonight:steady`. |

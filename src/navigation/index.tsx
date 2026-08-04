@@ -185,18 +185,34 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
     setOnboarding(false);
   }
 
-  // A reminder tapped while signed out can't go straight to the session — that
-  // route only exists in the signed-in stack. Hold the intent and honour it
-  // once a session appears.
-  const pendingSession = useRef(false);
+  /**
+   * Where a tapped reminder wants to go, held until it can be honoured.
+   *
+   * A reminder tapped while signed out can't navigate — those routes only exist
+   * in the signed-in stack. It is a destination rather than a boolean because
+   * the reminders no longer agree on one: wind-down starts tonight's routine,
+   * morning opens the stretch library, and lights out deliberately goes nowhere.
+   */
+  const pendingIntent = useRef<'session' | 'stretches' | null>(null);
 
-  const consumePendingSession = useCallback(() => {
+  const consumePendingIntent = useCallback(() => {
     // Onboarding is its own group, without a `Session` route in it — and
     // dropping someone into a timed routine mid-walkthrough would be the wrong
     // answer even if the route existed. The intent is held until they are out.
     if (onboarding !== false) return;
-    if (!pendingSession.current || !signedIn || !navigationRef.isReady()) return;
-    pendingSession.current = false;
+    if (!pendingIntent.current || !signedIn || !navigationRef.isReady()) return;
+    const intent = pendingIntent.current;
+    pendingIntent.current = null;
+
+    if (intent === 'stretches') {
+      // Not a `Session`: at 7am the app has no idea which stretches you want,
+      // and a morning nudge that force-starts an eight-step wind-down would be
+      // running the wrong routine at the wrong end of the day. The library is
+      // the honest destination — it is the screen you would have opened.
+      navigationRef.navigate('Tabs', { screen: 'Modules', params: { screen: 'StretchLibrary' } });
+      return;
+    }
+
     // Whichever routine Tonight would have started, not the built-in one — a
     // reminder that ignores the routine you saved is worse than no shortcut.
     loadActiveRoutine().then((routine) => {
@@ -209,17 +225,19 @@ export default function Navigation({ navigationRef }: { navigationRef: any }) {
 
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      // Only the wind-down reminder opens anything. Lights out has done its job
-      // the moment it is read — sending someone into the app at a quarter to
-      // eleven is the opposite of what it asked them to do.
-      if (reminderFromResponse(response) !== 'wind-down') return;
-      pendingSession.current = true;
-      consumePendingSession();
+      // Lights out is absent on purpose. It has done its job the moment it is
+      // read — sending someone into the app at a quarter to eleven is the
+      // opposite of what it asked them to do.
+      const id = reminderFromResponse(response);
+      if (id === 'wind-down') pendingIntent.current = 'session';
+      else if (id === 'wake') pendingIntent.current = 'stretches';
+      else return;
+      consumePendingIntent();
     });
     return () => sub.remove();
-  }, [consumePendingSession]);
+  }, [consumePendingIntent]);
 
-  useEffect(consumePendingSession, [consumePendingSession]);
+  useEffect(consumePendingIntent, [consumePendingIntent]);
 
   /**
    * Re-register the stored reminders once a session appears.

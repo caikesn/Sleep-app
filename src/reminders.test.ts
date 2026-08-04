@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  DEFAULT_REMINDERS,
   EVERY_NIGHT,
+  REMINDER_COPY,
+  REMINDER_IDS,
+  REMINDER_KIND,
   WEEKNIGHTS,
   WEEKENDS,
   type Reminder,
@@ -42,15 +46,102 @@ test('nights are sorted, deduped and toggled without mutating the input', () => 
   assert.ok(!sameNights([0, 1], [0, 1, 2]));
 });
 
-test('a reminder before 4am fires on the morning after the night it names', () => {
+test('an evening reminder before 4am fires on the morning after the night it names', () => {
   // The point of the whole `nights` concept: lights out at half past midnight
   // on Sunday night is a Monday event.
-  assert.equal(fireDay(0, 0), 1, 'Sunday night at midnight fires Monday');
-  assert.equal(fireDay(6, 1), 0, 'Saturday night wraps to Sunday');
-  assert.equal(fireDay(0, 3), 1, 'still the night before at 3am');
+  assert.equal(fireDay(0, 0, 'evening'), 1, 'Sunday night at midnight fires Monday');
+  assert.equal(fireDay(6, 1, 'evening'), 0, 'Saturday night wraps to Sunday');
+  assert.equal(fireDay(0, 3, 'evening'), 1, 'still the night before at 3am');
 
-  assert.equal(fireDay(0, 4), 0, '4am is the cutoff, matching streak.ts');
-  assert.equal(fireDay(0, 21), 0, 'an evening time fires on its own night');
+  assert.equal(fireDay(0, 4, 'evening'), 0, '4am is the cutoff, matching streak.ts');
+  assert.equal(fireDay(0, 21, 'evening'), 0, 'an evening time fires on its own night');
+});
+
+test('a morning reminder always fires the day after the night it names', () => {
+  // The bug this parameter exists to stop. Under the evening rule a 7am wake
+  // time is past the 4am cutoff, so it would fire on the night's own day —
+  // Sunday morning, twenty-three hours *before* the Sunday night it was set
+  // for. Every morning hour is the day after, cutoff or no cutoff.
+  assert.equal(fireDay(0, 7, 'morning'), 1, 'Sunday night wakes you Monday');
+  assert.notEqual(fireDay(0, 7, 'morning'), fireDay(0, 7, 'evening'), 'the rules genuinely differ');
+
+  assert.equal(fireDay(6, 6, 'morning'), 0, 'Saturday night wraps to Sunday');
+  assert.equal(fireDay(0, 3, 'morning'), 1, 'a 3am start agrees with the evening rule');
+  assert.equal(fireDay(0, 11, 'morning'), 1, 'a late riser is still the next day');
+});
+
+test('the wake reminder is scheduled as a morning', () => {
+  assert.equal(REMINDER_KIND.wake, 'morning');
+  assert.equal(REMINDER_KIND['wind-down'], 'evening');
+  assert.equal(REMINDER_KIND['lights-out'], 'evening');
+
+  // Every id has a kind, a copy block and a default — the three records that a
+  // new reminder has to be added to, checked here rather than trusted.
+  for (const id of REMINDER_IDS) {
+    assert.ok(REMINDER_KIND[id], `${id} has a kind`);
+    assert.ok(REMINDER_COPY[id]?.title, `${id} has copy`);
+    assert.equal(DEFAULT_REMINDERS[id].id, id, `${id} has a default`);
+    assert.equal(DEFAULT_REMINDERS[id].enabled, false, `${id} is off until asked for`);
+  }
+});
+
+test('a wake reminder on weeknights fires Monday to Friday morning', () => {
+  // Sun–Thu nights are the nights before a working day; the alarms for them
+  // land on Mon–Fri. Getting this wrong by a day would ring on Sunday morning
+  // and stay silent on Friday.
+  const specs = expandSchedules(reminder({ id: 'wake', hour: 7, minute: 0, nights: WEEKNIGHTS }));
+
+  assert.deepEqual(
+    specs.map((s) => (s.kind === 'weekly' ? s.weekday : null)),
+    [1, 2, 3, 4, 5]
+  );
+  assert.deepEqual(
+    specs.map((s) => s.key),
+    ['wick.wake.n0', 'wick.wake.n1', 'wick.wake.n2', 'wick.wake.n3', 'wick.wake.n4'],
+    'keyed by the night, like every other reminder'
+  );
+  assert.ok(!ownsKey('wind-down', 'wick.wake.n0'), 'and owned only by itself');
+  assert.ok(!ownsKey('wake', 'wick.wind-down.daily'));
+});
+
+test('a wake reminder on every night is still one daily schedule', () => {
+  // Shifting all seven nights forward a day is all seven days again, so the
+  // collapse has to survive the morning shift the same way it survives the
+  // past-midnight one. iOS caps the app at 64 pending notifications and this is
+  // now the third reminder competing for them.
+  const specs = expandSchedules(reminder({ id: 'wake', hour: 7, minute: 0 }));
+
+  assert.equal(specs.length, 1);
+  assert.equal(specs[0].kind, 'daily');
+  assert.equal(specs[0].key, 'wick.wake.daily');
+  assert.equal(specs[0].hour, 7);
+});
+
+test('a wake reminder fires tomorrow morning, not this morning', () => {
+  // Monday evening, wound down, wake set for weekday mornings: the next firing
+  // is Tuesday. The evening rule would have scheduled Monday 07:00 — a moment
+  // that is already twelve hours gone.
+  const mondayEvening = new Date(2026, 6, 6, 20, 0);
+  assert.equal(mondayEvening.getDay(), 1);
+
+  const next = nextFireAt(reminder({ id: 'wake', hour: 7, minute: 0, nights: WEEKNIGHTS }), mondayEvening);
+  assert.deepEqual(next, new Date(2026, 6, 7, 7, 0), 'Tuesday morning, from Monday night');
+
+  // And from the small hours of Tuesday, it is still that same morning.
+  const tuesdayNight = new Date(2026, 6, 7, 1, 0);
+  assert.deepEqual(
+    nextFireAt(reminder({ id: 'wake', hour: 7, minute: 0, nights: WEEKNIGHTS }), tuesdayNight),
+    new Date(2026, 6, 7, 7, 0),
+    'set for Monday night, and it is now Tuesday morning — the alarm has not gone yet'
+  );
+});
+
+test('a Saturday-night lie-in is a Sunday morning', () => {
+  const saturdayEvening = new Date(2026, 6, 11, 22, 0);
+  assert.equal(saturdayEvening.getDay(), 6);
+
+  const next = nextFireAt(reminder({ id: 'wake', hour: 9, minute: 30, nights: [6] }), saturdayEvening);
+  assert.deepEqual(next, new Date(2026, 6, 12, 9, 30), 'the week wraps rather than running off the end');
 });
 
 test('expo numbers weekdays from one, with Sunday first', () => {
@@ -179,6 +270,14 @@ test('minutesBetween counts forward through midnight', () => {
   assert.equal(minutesBetween({ hour: 23, minute: 30 }, { hour: 0, minute: 15 }), 45, 'across midnight');
   assert.equal(minutesBetween({ hour: 21, minute: 30 }, { hour: 21, minute: 30 }), 0);
   assert.equal(minutesBetween({ hour: 22, minute: 0 }, { hour: 21, minute: 0 }), 23 * 60, 'the long way round');
+});
+
+test('the night the two defaults describe is eight and a quarter hours', () => {
+  // What Settings shows once lights out and morning are both on. Counting
+  // forward through midnight is the whole trick: subtracting would give minus
+  // fifteen hours forty-five for a perfectly ordinary night.
+  const window = minutesBetween(DEFAULT_REMINDERS['lights-out'], DEFAULT_REMINDERS.wake);
+  assert.equal(window, 8 * 60 + 15);
 });
 
 test('describeNights names the presets and lists anything else', () => {

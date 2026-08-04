@@ -18,6 +18,7 @@ import {
   type Weekday,
   REMINDER_COPY,
   REMINDER_IDS,
+  REMINDER_KIND,
   describeNights,
   minutesBetween,
   toggleNight,
@@ -50,6 +51,17 @@ function formatGap(minutes: number): string {
  * midnight, so 9pm after a 10pm wind-down reads as twenty-three hours.
  */
 const IMPLAUSIBLE_GAP_MINUTES = 12 * 60;
+
+/**
+ * The same guard for the night itself. Someone whose morning reminder is set
+ * *earlier in the clock* than lights out has wrapped the long way round, and
+ * `minutesBetween` faithfully reports the twenty-two hours — a number that
+ * looks like an arithmetic bug rather than the settings being crossed over.
+ *
+ * Fourteen rather than twelve: a genuinely long night in bed is a real thing
+ * and should still be counted, where a fourteen-hour wind-down is not.
+ */
+const IMPLAUSIBLE_NIGHT_MINUTES = 14 * 60;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -128,7 +140,11 @@ export default function SettingsScreen() {
 
   const windDown = reminders['wind-down'];
   const lightsOut = reminders['lights-out'];
+  const wake = reminders.wake;
   const gap = minutesBetween(windDown, lightsOut);
+  // Counted forward through midnight, which is what makes a 22:45 → 07:00 night
+  // read as eight and a quarter hours rather than as minus fifteen.
+  const night = minutesBetween(lightsOut, wake);
   const bothOn = windDown.enabled && lightsOut.enabled;
 
   return (
@@ -191,6 +207,15 @@ export default function SettingsScreen() {
               <Text style={[styles.nightsLabel, off && styles.dimmed]}>
                 {describeNights(reminder.nights)}
               </Text>
+              {/* The strip picks nights for all three, so a morning reminder
+                  has to say out loud that Sunday means Monday morning. Without
+                  this the control looks like it is off by a day, and the first
+                  thing anyone would do is "fix" it by shifting every toggle. */}
+              {REMINDER_KIND[id] === 'morning' && (
+                <Text style={[styles.cardNote, off && styles.dimmed]}>
+                  The morning after each night you pick — a Sunday night wakes you Monday.
+                </Text>
+              )}
             </View>
           </View>
         );
@@ -203,6 +228,18 @@ export default function SettingsScreen() {
             : gap > IMPLAUSIBLE_GAP_MINUTES
               ? 'Lights out comes before wind-down, so it lands the night before.'
               : `${formatGap(gap)} of wind-down between them.`}
+        </Text>
+      )}
+
+      {/* The one number a wake time makes computable. Deliberately framed as
+          what the night can *hold* rather than what you got: nothing here
+          measures sleep, and a line that read "7h 15m of sleep" would be
+          inventing a figure out of two settings. */}
+      {lightsOut.enabled && wake.enabled && (
+        <Text style={styles.note}>
+          {night > IMPLAUSIBLE_NIGHT_MINUTES
+            ? 'Your morning reminder comes before lights out.'
+            : `${formatGap(night)} from lights out to morning — the most sleep tonight can hold.`}
         </Text>
       )}
 

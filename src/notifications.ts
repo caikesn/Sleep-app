@@ -5,6 +5,7 @@ import {
   type ReminderId,
   type ScheduleSpec,
   REMINDER_COPY,
+  REMINDER_IDS,
   expandSchedules,
   expoWeekday,
   ownsKey,
@@ -58,6 +59,15 @@ const CHANNELS: Record<ReminderId, { name: string; importance: number }> = {
     // is on screen at a quarter to eleven.
     name: 'Lights out',
     importance: Notifications.AndroidImportance.DEFAULT,
+  },
+  wake: {
+    // HIGH, like wind-down: this one is asking to be acted on, and it arrives
+    // at a time when the phone is face down on a bedside table. It is still an
+    // ordinary notification channel and not an alarm one — `USE_EXACT_ALARM`
+    // and a full-screen intent are a different feature with a different Play
+    // Store review, and the copy in `REMINDER_COPY` promises accordingly.
+    name: 'Morning reminder',
+    importance: Notifications.AndroidImportance.HIGH,
   },
 };
 
@@ -183,5 +193,8 @@ export async function scheduledKeys(): Promise<string[]> {
 export function reminderFromResponse(response: Notifications.NotificationResponse): ReminderId | null {
   const data = response.notification.request.content.data;
   const id = data?.reminder;
-  return id === 'wind-down' || id === 'lights-out' ? id : null;
+  // Checked against the registry rather than a literal union written out here.
+  // The literal version silently returned null for every new reminder id, so a
+  // tap on one did nothing and looked like a navigation bug.
+  return REMINDER_IDS.includes(id as ReminderId) ? (id as ReminderId) : null;
 }

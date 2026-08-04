@@ -1,6 +1,6 @@
 # Wick — state of the app
 
-**As of 4 August 2026** · branch `main`, clean · HEAD `e4450b1` · 148 tests passing · `tsc --noEmit` clean
+**As of 5 August 2026** · branch `feat/wake-reminder` · 155 tests passing · `tsc --noEmit` clean
 
 A companion to [ARCHITECTURE.md](ARCHITECTURE.md), which explains *how* the thing is
 built. This one is about *what exists*, what it does when you open it, and what
@@ -152,12 +152,33 @@ looked at often, a reminder time is set once.
 
 ### Reminders
 
-Two of them — **Wind-down** ("time to wind down", tapping it starts tonight's
-routine) and **Lights out** ("nothing left to do tonight, put the phone down",
-tapping it deliberately opens nothing, because it has done its job when it is
-read). Each picks its own nights, with Weeknights / Weekends / Every night
-presets. `nights` names the **night**, not the calendar day, so a 00:30 lights-out
-set for "Sunday" fires on Monday morning.
+Three of them:
+
+- **Wind-down** — "time to wind down". Tapping it starts tonight's routine.
+- **Lights out** — "nothing left to do tonight, put the phone down". Tapping it
+  deliberately opens nothing, because it has done its job when it is read.
+- **Morning** — "stretch the night out before anything else". Tapping it opens
+  the stretch library rather than force-starting a routine, because at 7am the
+  app has no idea which stretches you want and the night routine is the wrong
+  one at the wrong end of the day.
+
+Each picks its own nights, with Weeknights / Weekends / Every night presets.
+`nights` names the **night**, not the calendar day, so a 00:30 lights-out set for
+"Sunday" fires on Monday morning — and so does a 7am morning reminder set for
+Sunday. Those two are the same rule but not the same arithmetic; see the streak
+rules below.
+
+Morning is a **reminder, not an alarm**, and says so. It is an ordinary scheduled
+notification, which the OS silences under Do Not Disturb — precisely what someone
+following this app's own advice has on overnight. A real alarm needs a critical-
+alert entitlement from Apple and a full-screen-intent permission on Android, and
+is a separate feature.
+
+With lights out and morning both on, Settings names the night they describe:
+"8h 15m from lights out to morning — the most sleep tonight can hold." Framed as
+what the night can hold rather than what you got, because nothing here measures
+sleep and a line reading "8h 15m of sleep" would be inventing a figure out of two
+settings.
 
 ---
 
@@ -165,8 +186,12 @@ set for "Sunday" fires on Monday morning.
 
 - **A night ends at 4am.** A wind-down finished at 00:30 belongs to the night
   before. Without this, doing your routine just after midnight would break the
-  streak it should have extended. The same cutoff drives which day a reminder
-  actually fires on.
+  streak it should have extended. The same cutoff drives which day an *evening*
+  reminder actually fires on.
+- **A morning reminder ignores that cutoff.** It is the day after its night at
+  every hour. 7am is past 4am, so the evening rule would fire a "Sunday night"
+  wake-up on Sunday morning — twenty-three hours before the night it was set for.
+  Same off-by-a-day, opposite direction, which is why `fireDay` takes a kind.
 - **The streak holds through the day.** It counts back from tonight, or from
   yesterday if tonight hasn't happened yet — otherwise it would read zero all day
   until you did your routine.
@@ -195,20 +220,34 @@ set for "Sunday" fires on Monday morning.
 | 7 | Meditation & audio | Done |
 | 8 | Reminders & scheduling | Done |
 | 9 | Accounts & sync | Auth done incl. password reset; **full sync partial** |
-| 10 | **Sleep & wake — morning targets + alarms** | **Not built. The most-wanted feature.** |
+| 10 | Sleep & wake — morning targets + alarms | Morning reminder done (5 Aug 2026). **A real alarm is not built** — see below |
 | 11 | Lighting & environment | Done (4 Aug 2026) |
 | 12 | Onboarding & settings | Onboarding done (3–4 Aug); settings continues to grow |
-| 13 | Testing | Pure layer covered (148 assertions); **component rendering untested** |
+| 13 | Testing | Pure layer covered (155 assertions); **component rendering untested** |
 
-### Item 10 is unblocked and is the obvious next thing
+### What item 10 still owes
 
-Morning alarms were blocked by the old notification layer, which called
-`cancelAllScheduledNotificationsAsync` before every schedule and could therefore
-only ever hold one pending notification. That is gone. Adding a wake alarm is now:
-a third `ReminderId`, its copy, its Android channel and its default. The
-registry, the night strip and the Settings card are already generic over the id
-list, and `fireDay` was written for exactly this case — a 7am alarm on "Sunday
-night" fires Monday.
+The **morning reminder** shipped on 5 August 2026 and the notification half of
+this section is done. Adding it was mostly what the previous version of this
+document predicted — a third `ReminderId`, its copy, its channel, its default,
+with the registry, the night strip and the Settings card already generic over the
+id list — with one exception worth recording, because the prediction was wrong
+about it and confidently so.
+
+`fireDay` had **not** been written for this case. It rolled a reminder to the next
+day only below the 4am cutoff, so a 7am wake time came out on the night's own
+day: a "Sunday night" alarm at Sunday breakfast. It now takes a `ReminderKind`
+and the two rules are separate and separately tested.
+
+What is left is a **real alarm** — one that sounds through Do Not Disturb and a
+silent switch. That needs Apple's critical-alert entitlement (an application, not
+a flag) and Android's `USE_EXACT_ALARM` plus a full-screen intent, and it changes
+what the feature can honestly promise. Until then the copy says "reminder" and
+means it.
+
+Also still open from this section: nothing yet **records** when you actually woke.
+The sleep window Settings shows is derived from two settings, not from anything
+observed, and it is labelled that way on purpose.
 
 ---
 
@@ -228,7 +267,7 @@ night" fires Monday.
 
 **Testing**
 
-- 148 assertions, all over the pure layer. **No component renders in any test** —
+- 155 assertions, all over the pure layer. **No component renders in any test** —
   that would need jest-expo and real dependencies.
 - Screenshots are react-native-web in Chromium. They catch overflow, wrapping and
   clipping; they say nothing about native shadows, font metrics or safe-area
@@ -267,10 +306,10 @@ night" fires Monday.
 
 - ~15,700 lines of TypeScript/TSX across 13 screens, 16 components and ~25
   domain modules.
-- 13 test files, 148 assertions, **zero test dependencies** — Node 24 strips
+- 13 test files, 155 assertions, **zero test dependencies** — Node 24 strips
   TypeScript natively, so the runner is `node --test`.
 - 30 stretches, 13 badges, 9 candle silhouettes, 12 wax colours, 4 breathing
-  patterns, 3 guided scripts, 5 soundscapes, 4 light levels, 2 reminders.
+  patterns, 3 guided scripts, 5 soundscapes, 4 light levels, 3 reminders.
 - 4 Supabase tables (`profiles`, `routines`, `routine_steps`, `sessions`), all
   with RLS.
 - 8 build/tooling scripts, none of which are a dependency: icons, bells,

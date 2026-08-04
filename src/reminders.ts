@@ -10,10 +10,26 @@
 
 import { NIGHT_CUTOFF_HOUR } from './streak';
 
-export type ReminderId = 'wind-down' | 'lights-out';
+export type ReminderId = 'wind-down' | 'lights-out' | 'wake';
 
 /** Every reminder there is, in the order they happen. */
-export const REMINDER_IDS: ReminderId[] = ['wind-down', 'lights-out'];
+export const REMINDER_IDS: ReminderId[] = ['wind-down', 'lights-out', 'wake'];
+
+/**
+ * Which end of the night a reminder belongs to.
+ *
+ * This is the whole reason `fireDay` needs more than an hour. Both kinds name
+ * the **night** in `nights`, but they resolve to a calendar day by different
+ * rules, and the evening rule is silently wrong for a morning time — see
+ * `fireDay`.
+ */
+export type ReminderKind = 'evening' | 'morning';
+
+export const REMINDER_KIND: Record<ReminderId, ReminderKind> = {
+  'wind-down': 'evening',
+  'lights-out': 'evening',
+  wake: 'morning',
+};
 
 /** 0 = Sunday, matching `Date.prototype.getDay()`. */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -71,9 +87,19 @@ export function toggleNight(nights: Weekday[], night: Weekday): Weekday[] {
  * `streak.ts` shifts by `NIGHT_CUTOFF_HOUR`: lights out at 00:30 on Sunday
  * night happens on Monday. Scheduling that as a Sunday trigger would fire it
  * twenty-three and a half hours early, on the wrong end of the same evening.
+ *
+ * The `kind` is not decoration. An evening reminder rolls over only once it is
+ * past midnight, because before 4am it still belongs to the night behind it.
+ * A **morning** reminder is always the day after its night, at every hour: 7am
+ * on Sunday night is Monday, and the evening rule would answer Sunday — the
+ * morning twenty-three hours before the night it was set for. That is the same
+ * off-by-a-day the 4am cutoff exists to prevent, in the other direction, and it
+ * is why the cutoff cannot simply be reused here.
  */
-export function fireDay(night: Weekday, hour: number): Weekday {
-  return hour < NIGHT_CUTOFF_HOUR ? (((night + 1) % 7) as Weekday) : night;
+export function fireDay(night: Weekday, hour: number, kind: ReminderKind): Weekday {
+  const next = ((night + 1) % 7) as Weekday;
+  if (kind === 'morning') return next;
+  return hour < NIGHT_CUTOFF_HOUR ? next : night;
 }
 
 /**
@@ -130,7 +156,7 @@ export function expandSchedules(reminder: Reminder): ScheduleSpec[] {
   return nights.map((night) => ({
     key: `${prefix}n${night}`,
     kind: 'weekly' as const,
-    weekday: fireDay(night, hour),
+    weekday: fireDay(night, hour, REMINDER_KIND[reminder.id]),
     hour,
     minute,
   }));
@@ -176,6 +202,11 @@ export function nextFireAt(reminder: Reminder, now: Date = new Date()): Date | n
  * whole reason it exists: Tonight draws the wick as burned *down*, so at ten
  * past a half-nine reminder it needs "twenty minutes ago", not "tomorrow at
  * half nine". Asking `nextFireAt` would relight the wick the moment it went out.
+ *
+ * `day` is a calendar day, not a night, which is what makes this correct for a
+ * morning reminder without a second branch: `expandSchedules` has already
+ * resolved the night to the day it lands on, so matching `getDay()` matches the
+ * morning itself.
  */
 export function fireAtOn(reminder: Reminder, day: Date = new Date()): Date | null {
   const specs = expandSchedules(reminder);
@@ -236,11 +267,25 @@ export const REMINDER_COPY: Record<
     title: 'Lights out',
     body: 'Nothing left to do tonight. Put the phone down.',
   },
+  wake: {
+    name: 'Morning',
+    // Says "reminder" rather than "alarm" on purpose. This is a scheduled
+    // notification, and the OS silences those under Do Not Disturb — which is
+    // exactly what someone following this app's own advice has on overnight.
+    // Calling it an alarm would be selling a wake-up it cannot guarantee.
+    caption: 'A nudge to start the day',
+    title: 'Morning',
+    body: 'Stretch the night out before anything else.',
+  },
 };
 
 export const DEFAULT_REMINDERS: Record<ReminderId, Reminder> = {
   'wind-down': { id: 'wind-down', hour: 21, minute: 30, enabled: false, nights: EVERY_NIGHT },
   'lights-out': { id: 'lights-out', hour: 22, minute: 45, enabled: false, nights: EVERY_NIGHT },
+  // Seven hours and a quarter after the default lights-out, which is the point:
+  // the two defaults together describe a plausible night rather than two
+  // unrelated times that happen to be on the same screen.
+  wake: { id: 'wake', hour: 7, minute: 0, enabled: false, nights: EVERY_NIGHT },
 };
 
 function clamp(value: unknown, min: number, max: number, fallback: number): number {
